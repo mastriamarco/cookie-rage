@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 5_2</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            background-color: rgba(0, 0, 0, 0.4); 
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* =========================================
+           2. GRAFICA DELLA FINESTRA BANNER
+           ========================================= */
+        #cookie-modal {
+            background-color: #000000;
+            border: 1px solid #555555;
+            border-radius: 16px;
+            padding: 30px 20px 25px 20px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .close-x {
+            position: absolute; top: 12px; right: 16px;
+            font-size: 20px; color: #888888; cursor: pointer; font-weight: bold;
+        }
+
+        h2 { color: #ffffff; margin: 0 0 12px 0; font-size: 18px; font-weight: 600; text-align: left; }
+        p { color: #cccccc; font-size: 13px; line-height: 1.5; margin: 0 0 20px 0; text-align: left; }
+
+        /* =========================================
+           3. BARRA DI PROGRESSO
+           ========================================= */
+        .progress-container {
+            width: 100%; height: 18px;
+            background-color: #222222;
+            border: 1px solid #444; border-radius: 10px;
+            margin-bottom: 25px;
+            overflow: hidden; position: relative;
+        }
+
+        .progress-fill {
+            width: 0%; height: 100%;
+            background-color: #4285F4;
+            transition: width 0.05s linear;
+        }
+
+        /* =========================================
+           4. AGGIORNAMENTO BOTTONI PER ANIMAZIONE
+           ========================================= */
+        .btn-container {
+            position: relative; /* Necessario per il posizionamento assoluto */
+            width: 100%;
+            height: 50px; /* Altezza fissa del contenitore dei bottoni */
+            margin-top: 10px;
+        }
+
+        .btn-cookie {
+            position: absolute; /* I bottoni sono sovrapposti, li posizioniamo con JS */
+            top: 0;
+            width: calc(50% - 6px); /* 50% meno metà del gap desiderato (12px) */
+            padding: 14px 0;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            color: #ffffff;
+            /* Nuova transizione veloce e fluida */
+            transition: left 0.15s ease, right 0.15s ease, transform 0.05s;
+            z-index: 2;
+        }
+
+        .btn-cookie:active { transform: scale(0.95); }
+
+        .btn-accetta { background-color: #34A853; left: 0; } /* Posizione iniziale dx */
+        .btn-rifiuta { background-color: #EA4335; right: 0; } /* Posizione iniziale sx */
+
+        /* =========================================
+           5. SCHERMATA RISULTATO
+           ========================================= */
+        .result-screen { display: none; padding: 20px 0; }
+        .result-title { font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        
+        <div id="level-content">
+            <span class="close-x" onclick="triggerGameOver('Hai cliccato la X chiudendo il processo!')">&times;</span>
+            <h2>Sincronizzazione Dati</h2>
+            <p>Stiamo generando il tuo profilo. Riempi la barra cliccando su ACCETTA per completare l'operazione.</p>
+            
+            <div class="progress-container">
+                <div id="bar-fill" class="progress-fill"></div>
+            </div>
+            
+            <div class="btn-container">
+                <button class="btn-cookie btn-accetta" id="btn-accetta" onclick="clickAccetta()">ACCETTA</button>
+                <button class="btn-cookie btn-rifiuta" id="btn-rifiuta" onclick="clickRifiuta()">RIFIUTA</button>
+            </div>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title"></div>
+        </div>
+
+    </div>
+
+    <script>
+        const barFill = document.getElementById('bar-fill');
+        const btnAccetta = document.getElementById('btn-accetta');
+        const btnRifiuta = document.getElementById('btn-rifiuta');
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const resultTitle = document.getElementById('result-title');
+        const modalBox = document.getElementById('cookie-modal');
+
+        let progress = 0;
+        let gameActive = true;
+        let decayTimer;
+        let clicksSinceLastSwap = 0;
+        let nextSwapTarget = getRandomInt(3, 7);
+        let isSwapped = false;
+
+        function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+        function startDecay() {
+            decayTimer = setInterval(() => {
+                if (!gameActive) return;
+                progress -= 0.2; // 2 al secondo
+                if (progress < 0) progress = 0;
+                updateBar();
+            }, 100);
+        }
+
+        // --- AGGIORNATA FUNZIONE SWAP CON ANIMAZIONE ---
+        function clickAccetta() {
+            if (!gameActive) return;
+
+            progress += 5;
+            clicksSinceLastSwap++;
+
+            if (clicksSinceLastSwap >= nextSwapTarget) {
+                isSwapped = !isSwapped;
+                
+                // --- LOGICA DI ANIMAZIONE DEI BOTTONI ---
+                // Calcola lo spazio di movimento basato su 'calc' per essere reattivo
+                const offsetMove = 'calc(50% + 6px)'; // Sposta di mezza finestra + metà del gap
+                
+                if (isSwapped) {
+                    btnAccetta.style.left = offsetMove;
+                    btnRifiuta.style.right = offsetMove;
+                } else {
+                    btnAccetta.style.left = '0';
+                    btnRifiuta.style.right = '0';
+                }
+                
+                clicksSinceLastSwap = 0;
+                nextSwapTarget = getRandomInt(3, 7);
+            }
+
+            updateBar();
+            if (progress >= 100) triggerSuccess();
+        }
+
+        function clickRifiuta() {
+            if (!gameActive) return;
+            triggerGameOver("Hai cliccato RIFIUTA! La fretta ti ha tradito.");
+        }
+
+        function updateBar() {
+            if (progress > 100) progress = 100;
+            barFill.style.width = progress + '%';
+        }
+
+        function triggerSuccess() {
+            gameActive = false;
+            clearInterval(decayTimer);
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            resultTitle.style.color = "#34A853";
+            resultTitle.innerText = "✓ ACCETTATO";
+            setTimeout(() => { window.parent.postMessage({ action: 'completeLevel' }, '*'); }, 1000);
+        }
+
+        function triggerGameOver(reason) {
+            gameActive = false;
+            clearInterval(decayTimer);
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+
+        startDecay();
+    </script>
+</body>
+</html>

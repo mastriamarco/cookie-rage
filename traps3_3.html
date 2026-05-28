@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 3_3</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            background-color: rgba(0, 0, 0, 0.4); 
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* =========================================
+           2. GRAFICA DELLA FINESTRA BANNER
+           ========================================= */
+        #cookie-modal {
+            background-color: #000000;
+            border: 1px solid #555555;
+            border-radius: 16px;
+            padding: 30px 20px 25px 20px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .close-x {
+            position: absolute; top: 12px; right: 16px;
+            font-size: 20px; color: #888888; cursor: pointer; font-weight: bold;
+        }
+
+        h2 { color: #ffffff; margin: 0 0 12px 0; font-size: 18px; font-weight: 600; text-align: left; }
+        p { color: #cccccc; font-size: 13px; line-height: 1.5; margin: 0 0 25px 0; text-align: left; }
+
+        /* =========================================
+           3. L'INTERRUTTORE (TOGGLE SWITCH)
+           ========================================= */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #1a1a1a;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 1px solid #333;
+        }
+
+        .switch-label { color: #ffffff; font-size: 14px; font-weight: 500; }
+
+        /* Estetica Switch iOS */
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+
+        .toggle input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #444;
+            transition: .3s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px; width: 20px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: #34A853; }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* =========================================
+           4. BOTTONE PROCEDI E RISULTATO
+           ========================================= */
+        .btn-procedi {
+            width: 100%;
+            padding: 14px 0;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            background-color: #4285F4; /* Blu Google per sembrare un tasto standard */
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            transition: transform 0.1s;
+        }
+
+        .btn-procedi:active { transform: scale(0.97); }
+
+        .result-screen { display: none; padding: 20px 0; }
+        .result-title { font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        
+        <div id="level-content">
+            <span class="close-x" onclick="triggerGameOver('Hai cliccato la X senza accettare!')">&times;</span>
+            <h2>Analisi del Traffico</h2>
+            <p>Utilizziamo strumenti di analisi per monitorare il comportamento degli utenti. Attiva l'opzione per procedere.</p>
+            
+            <div class="switch-container">
+                <span class="switch-label">Consenti analisi dati</span>
+                <label class="toggle">
+                    <input type="checkbox" id="data-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <button class="btn-procedi" onclick="checkLogic()">PROCEDI</button>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title"></div>
+        </div>
+
+    </div>
+
+    <script>
+        const dataToggle = document.getElementById('data-toggle');
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const resultTitle = document.getElementById('result-title');
+        const modalBox = document.getElementById('cookie-modal');
+
+        // Logica di controllo
+        function checkLogic() {
+            if (dataToggle.checked) {
+                triggerSuccess();
+            } else {
+                triggerGameOver("Non hai attivato il consenso prima di procedere!");
+            }
+        }
+
+        function triggerSuccess() {
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            resultTitle.style.color = "#34A853";
+            resultTitle.innerText = "✓ ACCETTATO";
+
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1000);
+        }
+
+        function triggerGameOver(reason) {
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+    </script>
+</body>
+</html>

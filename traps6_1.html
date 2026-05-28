@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 6_1</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            background-color: rgba(0, 0, 0, 0.4); 
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* =========================================
+           2. GRAFICA DELLA FINESTRA BANNER
+           ========================================= */
+        #cookie-modal {
+            background-color: #000000;
+            border: 1px solid #555555;
+            border-radius: 16px;
+            padding: 30px 20px 25px 20px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .close-x {
+            position: absolute; top: 12px; right: 16px;
+            font-size: 20px; color: #888888; cursor: pointer; font-weight: bold;
+        }
+
+        h2 { color: #ffffff; margin: 0 0 12px 0; font-size: 18px; font-weight: 600; text-align: left; }
+        
+        p { 
+            color: #cccccc; 
+            font-size: 13px; 
+            line-height: 1.5; 
+            margin: 0 0 15px 0; 
+            text-align: left; 
+        }
+
+        /* =========================================
+           3. BARRA DI CARICAMENTO
+           ========================================= */
+        .progress-text {
+            color: #8ab4f8;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: block;
+            text-align: left;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 12px;
+            background-color: #222222;
+            border: 1px solid #444;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background-color: #4285F4;
+            transition: width 0.05s linear;
+        }
+
+        /* =========================================
+           4. IL BOTTONE TRAPPOLA
+           ========================================= */
+        .btn-annulla {
+            width: 100%;
+            padding: 14px 0;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            /* Colore verde ingannevole */
+            background-color: #34A853; 
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            transition: transform 0.1s;
+        }
+
+        .btn-annulla:active { transform: scale(0.97); }
+
+        /* =========================================
+           5. SCHERMATA RISULTATO
+           ========================================= */
+        .result-screen { display: none; padding: 20px 0; }
+        .result-title { font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        <div id="level-content">
+            <span class="close-x" onclick="triggerGameOver('Hai chiuso la finestra prima della fine!')">&times;</span>
+            <h2>Profilazione in corso</h2>
+            <p>Non chiudere la finestra. Stiamo analizzando i tuoi metadati per fornirti pubblicità mirata.</p>
+            
+            <span class="progress-text" id="progress-text">Analisi in corso (0%)...</span>
+            <div class="progress-container">
+                <div id="bar-fill" class="progress-fill"></div>
+            </div>
+            
+            <button class="btn-annulla" onclick="triggerGameOver('Sei caduto nel tranello! Hai annullato la profilazione.')">ANNULLA</button>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title"></div>
+        </div>
+    </div>
+
+    <script>
+        const barFill = document.getElementById('bar-fill');
+        const progressText = document.getElementById('progress-text');
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const resultTitle = document.getElementById('result-title');
+        const modalBox = document.getElementById('cookie-modal');
+
+        let progress = 0;
+        let loadTimer;
+
+        // --- GESTIONE DEL CARICAMENTO ---
+        function startLoading() {
+            // Un update ogni 45 millisecondi = ~4.5 secondi per arrivare a 100
+            loadTimer = setInterval(() => {
+                progress += 1;
+                
+                barFill.style.width = progress + '%';
+                progressText.innerText = `Analisi in corso (${progress}%)...`;
+
+                if (progress >= 100) {
+                    clearInterval(loadTimer);
+                    triggerSuccess();
+                }
+            }, 45);
+        }
+
+        // Avvia il caricamento appena si apre la modale
+        startLoading();
+
+        // --- VITTORIA E SCONFITTA ---
+        function triggerSuccess() {
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            resultTitle.style.color = "#34A853";
+            resultTitle.innerText = "✓ ACCETTATO";
+
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1000);
+        }
+
+        function triggerGameOver(reason) {
+            clearInterval(loadTimer); // Ferma la barra se perde
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+    </script>
+</body>
+</html>

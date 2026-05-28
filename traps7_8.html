@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 7_1</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.4); 
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+            position: relative;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* =========================================
+           2. FINESTRA COOKIE PRINCIPALE
+           ========================================= */
+        #cookie-modal {
+            background-color: #000000;
+            border: 1px solid #555555;
+            border-radius: 16px;
+            padding: 30px 20px 25px 20px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            text-align: center;
+            box-sizing: border-box;
+            z-index: 10; /* Sta sotto le pile di errore */
+        }
+
+        h2 { color: #ffffff; margin: 0 0 12px 0; font-size: 18px; font-weight: 600; text-align: left; }
+        p { color: #cccccc; font-size: 13px; line-height: 1.5; margin: 0 0 25px 0; text-align: left; }
+
+        .btn-group { display: flex; gap: 12px; width: 100%; }
+
+        .btn-cookie {
+            flex: 1; padding: 14px 0; font-size: 14px; font-weight: bold;
+            border-radius: 8px; border: none; cursor: pointer; color: #ffffff;
+            transition: transform 0.1s;
+        }
+        .btn-cookie:active { transform: scale(0.97); }
+
+        .btn-consenti { background-color: #4285F4; }
+        .btn-rifiuta { background-color: #333333; border: 1px solid #555; }
+
+        /* =========================================
+           3. FINTE FINESTRE DI ERRORE RETRO XP
+           ========================================= */
+        .xp-error-popup {
+            position: absolute;
+            width: 220px;
+            height: 90px;
+            background-color: #f1efe2;
+            border: 2px solid #0055ea;
+            border-radius: 4px 4px 0 0;
+            box-shadow: 4px 4px 12px rgba(0,0,0,0.65);
+            box-sizing: border-box;
+            display: flex; flex-direction: column;
+            transition: opacity 0.1s, transform 0.1s; 
+        }
+
+        .xp-header {
+            background: linear-gradient(to right, #0058e6 0%, #3a95ff 100%);
+            padding: 4px 6px; display: flex; justify-content: space-between; align-items: center;
+            color: white; font-family: 'Tahoma', sans-serif; font-size: 11px; font-weight: bold;
+        }
+
+        .xp-close-x {
+            width: 18px; height: 18px; background-color: #e04343; border: 1px solid #fff;
+            border-radius: 3px; color: white; font-size: 11px; font-weight: bold;
+            display: flex; justify-content: center; align-items: center; cursor: pointer;
+            box-shadow: inset -1px -1px 2px rgba(0,0,0,0.4);
+        }
+        .xp-close-x:active { background-color: #990000; }
+
+        .xp-body {
+            padding: 10px; display: flex; align-items: center; gap: 8px;
+            color: #000000; font-family: 'Tahoma', sans-serif; font-size: 11px;
+        }
+        .xp-icon { font-size: 20px; }
+
+        .result-screen { display: none; padding: 20px 0; }
+        .result-title { font-size: 24px; font-weight: bold; color: #34A853; }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        <div id="level-content">
+            <h2>Avviso Notifiche Push</h2>
+            <p>Sincronizza il tuo browser con i nostri server di tracciamento per ricevere avvisi istantanei sulle offerte commerciali dei partner.</p>
+            <div class="btn-group">
+                <button class="btn-cookie btn-consenti" onclick="triggerSuccess()">CONSENTI</button>
+                <button class="btn-cookie btn-rifiuta" id="btn-rifiuta" onclick="triggerGameOver('Hai chiuso il sistema rifiutando la sincronizzazione.')">RIFIUTA</button>
+            </div>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title">✓ ACCETTATO</div>
+        </div>
+    </div>
+
+    <script>
+        const rifiutaBtn = document.getElementById('btn-rifiuta');
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const modalBox = document.getElementById('cookie-modal');
+
+        const totalPopups = 60;
+        const stackSize = 20;
+
+        const popW = 220;
+        
+        // --- AUMENTATA LA SPAZIATURA COME RICHIESTO ---
+        const deltaX = 12; // Più respiro orizzontale
+        const deltaY = 14; // Più pendenza verticale
+
+        function initCascade() {
+            // Otteniamo i rettangoli di posizionamento sia del bottone che della modale intera
+            const modalRect = modalBox.getBoundingClientRect();
+            const btnRect = rifiutaBtn.getBoundingClientRect();
+            
+            const targetX = btnRect.left + (btnRect.width / 2);
+            const targetY = btnRect.top + (btnRect.height / 2);
+
+            // Calcolo esatto per l'ancoraggio dell'ultima X del 60° popup sul tasto RIFIUTA
+            const finalLeft = targetX - (popW - 15); 
+            const finalTop = targetY - 12;
+
+            // --- CENTRATURA ANCORATA ALLA MODALE DEI COOKIE ---
+            
+            // Pila 1: Nasce leggermente sopra e a sinistra del banner e scende verso il centro
+            const stack1Left = modalRect.left - 40;
+            const stack1Top = modalRect.top - 60;
+
+            // Pila 2: Nasce sopra e a destra del banner e scende incrociandosi verso sinistra
+            const stack2Left = modalRect.right - popW + 40;
+            const stack2Top = modalRect.top - 30;
+
+            // Pila 3: Calcolata a ritroso per finire millimetricamente sopra il tasto RIFIUTA
+            const stack3StartLeft = finalLeft - ((stackSize - 1) * deltaX);
+            const stack3StartTop = finalTop - ((stackSize - 1) * deltaY);
+
+            let currentIndex = 1;
+
+            // Disegna Pila 1 (Copre la metà superiore sinistra del banner)
+            for (let i = 0; i < stackSize; i++) {
+                createPopup(currentIndex++, stack1Left + (i * deltaX), stack1Top + (i * deltaY), 100 + currentIndex);
+            }
+
+            // Disegna Pila 2 (Copre la metà superiore destra del banner)
+            for (let i = 0; i < stackSize; i++) {
+                createPopup(currentIndex++, stack2Left - (i * deltaX), stack2Top + (i * deltaY), 200 + currentIndex);
+            }
+
+            // Disegna Pila 3 (La trappola finale che si sovrappone a tutto e punta a RIFIUTA)
+            for (let i = 0; i < stackSize; i++) {
+                createPopup(currentIndex++, stack3StartLeft + (i * deltaX), stack3StartTop + (i * deltaY), 300 + currentIndex);
+            }
+        }
+
+        function createPopup(index, left, top, zIndex) {
+            const popup = document.createElement('div');
+            popup.className = 'xp-error-popup';
+            popup.id = `xp-pop-${index}`;
+            
+            popup.style.zIndex = zIndex;
+            popup.style.left = left + 'px';
+            popup.style.top = top + 'px';
+
+            popup.innerHTML = `
+                <div class="xp-header">
+                    <span>Sistema Operativo</span>
+                    <div class="xp-close-x" onclick="closePopup(${index})">X</div>
+                </div>
+                <div class="xp-body">
+                    <span class="xp-icon">⚠️</span>
+                    <span>Errore critico 0x000${index}: Consenti le notifiche push.</span>
+                </div>
+            `;
+
+            document.body.appendChild(popup);
+        }
+
+        function closePopup(index) {
+            const currentPop = document.getElementById(`xp-pop-${index}`);
+            if (currentPop) {
+                currentPop.style.transform = 'scale(0.9)';
+                currentPop.style.opacity = '0';
+                setTimeout(() => { currentPop.remove(); }, 100);
+            }
+        }
+
+        function triggerSuccess() {
+            const remainingPopups = document.querySelectorAll('.xp-error-popup').length;
+            if (remainingPopups > 0) {
+                triggerGameOver("Devi ripulire gli errori di sistema prima di poter interagire!");
+                return;
+            }
+
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1000);
+        }
+
+        function triggerGameOver(reason) {
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+
+        // Il calcolo avviene al caricamento completo per avere i Rect precisi del posizionamento CSS
+        window.onload = () => {
+            initCascade();
+        };
+    </script>
+</body>
+</html>

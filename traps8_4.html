@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 8_4</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO TECH
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.4); 
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+            position: relative;
+            user-select: none; -webkit-user-select: none;
+            touch-action: none; 
+        }
+
+        /* =========================================
+           2. GRAFICA DELLA FINESTRA BANNER
+           ========================================= */
+        #cookie-modal {
+            background-color: #050505;
+            border: 1px solid #333333;
+            border-radius: 16px;
+            padding: 20px;
+            width: 90%;
+            max-width: 380px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .header-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stage-indicator {
+            color: #EA4335;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        h2 { color: #ffffff; margin: 0 0 6px 0; font-size: 15px; font-weight: 600; text-align: left; text-transform: uppercase; letter-spacing: 0.5px; }
+        p.desc { color: #888888; font-size: 11.5px; line-height: 1.45; margin: 0 0 15px 0; text-align: left; }
+
+        /* =========================================
+           3. AREA DELLA VIDEOCAMERA (Il Gratta e Vinci)
+           ========================================= */
+        .camera-feed-container {
+            width: 100%;
+            height: 180px;
+            background-color: #020202;
+            border: 1px solid #222;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        /* Il VERO Tasto "Consenti" sepolto sotto */
+        .btn-consenti-hidden {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            padding: 14px 0;
+            font-size: 13px;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #34A853;
+            border-radius: 8px;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 1; 
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(52, 168, 83, 0.6);
+            animation: pulseGlow 1.5s infinite alternate;
+        }
+        .btn-consenti-hidden:active { transform: translate(-50%, -50%) scale(0.95); }
+
+        @keyframes pulseGlow {
+            from { box-shadow: 0 0 10px rgba(52, 168, 83, 0.4); }
+            to { box-shadow: 0 0 25px rgba(52, 168, 83, 0.9); }
+        }
+
+        /* La Griglia della "Polvere Digitale" */
+        .dust-grid {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: grid;
+            grid-template-columns: repeat(14, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 1px;
+            z-index: 5; 
+        }
+
+        /* I singoli granelli di polvere */
+        .dust-cell {
+            background-color: #333333;
+            color: #777777;
+            font-size: 6px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: crosshair;
+            user-select: none;
+            border-radius: 1px;
+            box-shadow: inset 0 0 2px rgba(0,0,0,0.8);
+        }
+
+        /* =========================================
+           4. SCHERMATA RISULTATO
+           ========================================= */
+        .result-screen { display: none; padding: 25px 0; }
+        .result-title { font-size: 24px; font-weight: bold; color: #34A853; }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        <div id="level-content">
+            <div class="header-status">
+                <span class="stage-indicator">⚠️ RILEVATA OSTRUZIONE OTTICA</span>
+            </div>
+            <h2>Manutenzione Sensore</h2>
+            <p class="desc">Ai sensi dell'art. 8, il consenso richiede un sensore pulito. Rilevata una spessa patina di cookie bloccati ("Polvere di Rifiuta Tutto"). <b>Strofina energicamente lo schermo per ripulire la lente</b> e clicca il tasto sottostante prima che i residui ricrescano. <br><br><span style="color:#EA4335">Un clic accidentale sulla polvere invaliderà l'hardware.</span></p>
+            
+            <div class="camera-feed-container" id="feed-container">
+                <button class="btn-consenti-hidden" onclick="triggerSuccess()">AUTORIZZA FOTOCAMERA</button>
+                <div class="dust-grid" id="dust-grid"></div>
+            </div>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div class="result-title">✓ SENSORE RIPULITO</div>
+        </div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('dust-grid');
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const modalBox = document.getElementById('cookie-modal');
+
+        let isCompleted = false;
+        const cols = 14; 
+        const rows = 8;
+        const totalCells = cols * rows;
+        const cells = [];
+
+        // --- INIZIALIZZAZIONE DELLA POLVERE ---
+        for (let i = 0; i < totalCells; i++) {
+            let cell = document.createElement('div');
+            cell.className = 'dust-cell';
+            cell.innerText = 'RIFIUTA';
+            
+            const shade = 20 + Math.random() * 15; 
+            cell.style.backgroundColor = `hsl(0, 0%, ${shade}%)`;
+            
+            cell.dataset.opacity = 1;
+            cell.style.opacity = 1;
+
+            cell.addEventListener('click', () => {
+                if (isCompleted) return;
+                triggerGameOver("Hai premuto la polvere di scarto incrinando la lente ottica!");
+            });
+
+            cell.addEventListener('pointerenter', (e) => {
+                if (e.pointerType === 'mouse') wipeCell(cell);
+            });
+
+            grid.appendChild(cell);
+            cells.push(cell);
+        }
+
+        // --- WIPING MOBILE/TOUCH ---
+        grid.addEventListener('touchmove', (e) => {
+            if (isCompleted) return;
+            e.preventDefault(); 
+            
+            for (let i = 0; i < e.touches.length; i++) {
+                let target = document.elementFromPoint(e.touches[i].clientX, e.touches[i].clientY);
+                if (target && target.classList.contains('dust-cell')) {
+                    wipeCell(target);
+                }
+            }
+        }, { passive: false });
+
+        function wipeCell(cell) {
+            if (isCompleted) return;
+            cell.dataset.opacity = 0;
+            cell.style.opacity = 0;
+            cell.style.pointerEvents = 'none'; 
+        }
+
+        // --- IL MOTORE DI RICRESCITA RALLENTATO ---
+        const regenInterval = setInterval(() => {
+            if (isCompleted) {
+                clearInterval(regenInterval);
+                return;
+            }
+
+            cells.forEach(cell => {
+                let op = parseFloat(cell.dataset.opacity);
+                if (op < 1) {
+                    // VELOCITÀ DI RICRESCITA DIMEZZATA (era 0.04)
+                    op += 0.02; 
+                    if (op > 1) op = 1;
+                    
+                    cell.dataset.opacity = op;
+                    cell.style.opacity = op;
+
+                    // SOGLIA DI SOLIDIFICAZIONE PIÙ ALTA (era 0.25). 
+                    // Il tasto sotto rimane cliccabile fino al 35% di opacità.
+                    if (op > 0.35) {
+                        cell.style.pointerEvents = 'auto';
+                    }
+                }
+            });
+        }, 30);
+
+        function triggerSuccess() {
+            isCompleted = true;
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1000);
+        }
+
+        function triggerGameOver(reason) {
+            isCompleted = true; 
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+    </script>
+</body>
+</html>

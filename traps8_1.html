@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 8_1</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO TECH
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.4); 
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+            position: relative;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* =========================================
+           2. GRAFICA DELLA FINESTRA BANNER
+           ========================================= */
+        #cookie-modal {
+            background-color: #050505;
+            border: 1px solid #333333;
+            border-radius: 16px;
+            padding: 25px 20px 20px 20px;
+            width: 90%;
+            max-width: 360px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .close-x {
+            position: absolute; top: 12px; right: 16px;
+            font-size: 20px; color: #666666; cursor: pointer; font-weight: bold;
+        }
+        .close-x:hover { color: #fff; }
+
+        h2 { color: #ffffff; margin: 0 0 6px 0; font-size: 15px; font-weight: 600; text-align: left; text-transform: uppercase; letter-spacing: 0.5px; }
+        p.desc { color: #888888; font-size: 11px; line-height: 1.45; margin: 0 0 15px 0; text-align: left; }
+
+        /* =========================================
+           3. IL FINTO FEED DELLA VIDEOCAMERA
+           ========================================= */
+        .camera-feed-container {
+            width: 100%;
+            height: 130px;
+            background-color: #000;
+            border: 1px solid #222;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .camera-feed-container::before {
+            content: " ";
+            display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 0, 0.06));
+            z-index: 15; background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+
+        .noise-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 0, 100, 0.4);
+            z-index: 2;
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+
+        .viewfinder-corner {
+            position: absolute; width: 10px; height: 10px; border: 2px solid #444; pointer-events: none; z-index: 10;
+        }
+        .top-left { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+        .top-right { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+        .bottom-left { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+        .bottom-right { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+
+        .btn-consenti {
+            width: 210px;
+            padding: 12px 0;
+            font-size: 11px;
+            font-weight: bold;
+            color: #ffffff;
+            border-radius: 6px;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 5;
+            cursor: not-allowed;
+            background-color: rgb(200, 50, 120); 
+            transition: box-shadow 0.3s ease, transform 0.1s;
+        }
+
+        .btn-consenti:disabled { opacity: 0.85; }
+
+        .btn-consenti.active {
+            cursor: pointer !important;
+            box-shadow: 0 0 20px rgba(52, 168, 83, 0.8);
+            animation: pulseGlow 1.5s infinite alternate;
+        }
+        .btn-consenti.active:active { transform: scale(0.96); }
+
+        @keyframes pulseGlow {
+            from { box-shadow: 0 0 10px rgba(52, 168, 83, 0.5); }
+            to { box-shadow: 0 0 25px rgba(52, 168, 83, 1); }
+        }
+
+        /* =========================================
+           4. PANNELLO CURSORI DI CALIBRAZIONE
+           ========================================= */
+        .sliders-panel {
+            background-color: #0d0d0d;
+            border: 1px solid #1a1a1a;
+            border-radius: 8px;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+
+        .slider-group {
+            margin-bottom: 12px;
+            text-align: left;
+        }
+        .slider-group:last-child { margin-bottom: 0; }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .lbl-r { color: #e04343; }
+        .lbl-g { color: #34A853; }
+        .lbl-b { color: #4285F4; }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: #222;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        #slider-r { background: linear-gradient(to right, #222, #501010); }
+        #slider-g { background: linear-gradient(to right, #222, #10401a); }
+        #slider-b { background: linear-gradient(to right, #222, #102050); }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px; width: 16px;
+            border-radius: 50%;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        }
+        #slider-r::-webkit-slider-thumb { background-color: #e04343; }
+        #slider-g::-webkit-slider-thumb { background-color: #34A853; }
+        #slider-b::-webkit-slider-thumb { background-color: #4285F4; }
+
+        /* =========================================
+           5. SCHERMATA RISULTATO
+           ========================================= */
+        .result-screen { display: none; padding: 25px 0; }
+        .result-title { font-size: 24px; font-weight: bold; color: #34A853; }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        <div id="level-content">
+            <span class="close-x" onclick="triggerGameOver('Hai bloccato l\'acquisizione dei cookie ottici!')">&times;</span>
+            <h2>Cookie di Tracciamento Ottico-Retinico</h2>
+            <p class="desc">In conformità con l'addendum sui dati biometrici 2026/V7, l'attivazione della telecamera richiede la taratura dello spettro. Bilancia le frequenze incrociate finché il tasto non diventa <b>VERDE</b> (R:0% G:100% B:0%).</p>
+            
+            <div class="camera-feed-container">
+                <div class="viewfinder-corner top-left"></div>
+                <div class="viewfinder-corner top-right"></div>
+                <div class="viewfinder-corner bottom-left"></div>
+                <div class="viewfinder-corner bottom-right"></div>
+                
+                <div class="noise-overlay" id="noise-overlay"></div>
+                
+                <button class="btn-consenti" id="btn-consenti" disabled onclick="triggerSuccess()">REGISTRA IDENTITÀ BIOMETRICA</button>
+            </div>
+
+            <div class="sliders-panel">
+                <div class="slider-group">
+                    <div class="slider-label lbl-r"><span>Filtro Frequenza R (Rosso)</span><span id="val-r">80%</span></div>
+                    <input type="range" id="slider-r" min="0" max="100" value="80">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label lbl-g"><span>Guadagno Ottico G (Verde)</span><span id="val-g">20%</span></div>
+                    <input type="range" id="slider-g" min="0" max="100" value="20">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label lbl-b"><span>Filtro Frequenza B (Blu)</span><span id="val-b">50%</span></div>
+                    <input type="range" id="slider-b" min="0" max="100" value="50">
+                </div>
+            </div>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title">✓ IDENTITÀ VERIFICATA</div>
+        </div>
+    </div>
+
+    <script>
+        const sliderR = document.getElementById('slider-r');
+        const sliderG = document.getElementById('slider-g');
+        const sliderB = document.getElementById('slider-b');
+        
+        const textR = document.getElementById('val-r');
+        const textG = document.getElementById('val-g');
+        const textB = document.getElementById('val-b');
+
+        const btnConsenti = document.getElementById('btn-consenti');
+        const noiseOverlay = document.getElementById('noise-overlay');
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const modalBox = document.getElementById('cookie-modal');
+
+        // Canali iniziali
+        let currentR = 80;
+        let currentG = 20;
+        let currentB = 50;
+
+        let prevR = currentR;
+        let prevG = currentG;
+        let prevB = currentB;
+
+        function setValues(r, g, b) {
+            currentR = Math.max(0, Math.min(100, Math.round(r)));
+            currentG = Math.max(0, Math.min(100, Math.round(g)));
+            currentB = Math.max(0, Math.min(100, Math.round(b)));
+            
+            sliderR.value = currentR;
+            sliderG.value = currentG;
+            sliderB.value = currentB;
+            
+            prevR = currentR;
+            prevG = currentG;
+            prevB = currentB;
+            
+            textR.innerText = currentR + "%";
+            textG.innerText = currentG + "%";
+            textB.innerText = currentB + "%";
+            
+            const rByte = Math.round(currentR * 2.55);
+            const gByte = Math.round(currentG * 2.55);
+            const bByte = Math.round(currentB * 2.55);
+            
+            btnConsenti.style.backgroundColor = `rgb(${rByte}, ${gByte}, ${bByte})`;
+            noiseOverlay.style.backgroundColor = `rgba(${rByte}, 0, ${bByte}, 0.5)`;
+
+            // CONDIZIONE DI VITTORIA REALE
+            if (currentR === 0 && currentG === 100 && currentB === 0) {
+                btnConsenti.removeAttribute('disabled');
+                btnConsenti.classList.add('active');
+            } else {
+                btnConsenti.setAttribute('disabled', 'true');
+                btnConsenti.classList.remove('active');
+            }
+        }
+
+        // --- MATRICE DI ACCOPPIAMENTO LOOP CIRCOLARE ---
+        sliderR.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value);
+            let delta = val - prevR;
+            setValues(currentR + delta, currentG, currentB + delta * 0.5);
+        });
+
+        sliderG.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value);
+            let delta = val - prevG;
+            setValues(currentR + delta * 0.5, currentG + delta, currentB);
+        });
+
+        sliderB.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value);
+            let delta = val - prevB;
+            setValues(currentR, currentG - delta * 0.4, currentB + delta);
+        });
+
+        function triggerSuccess() {
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1000);
+        }
+
+        function triggerGameOver(reason) {
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+
+        setValues(currentR, currentG, currentB);
+    </script>
+</body>
+</html>

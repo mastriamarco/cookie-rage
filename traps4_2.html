@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 4_2</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            background-color: rgba(0, 0, 0, 0.4); 
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* =========================================
+           2. GRAFICA DELLA FINESTRA BANNER
+           ========================================= */
+        #cookie-modal {
+            background-color: #000000;
+            border: 1px solid #555555;
+            border-radius: 16px;
+            padding: 30px 20px 25px 20px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .close-x {
+            position: absolute; top: 12px; right: 16px;
+            font-size: 20px; color: #888888; cursor: pointer; font-weight: bold;
+        }
+
+        h2 { color: #ffffff; margin: 0 0 12px 0; font-size: 18px; font-weight: 600; text-align: left; }
+        p { color: #cccccc; font-size: 13px; line-height: 1.5; margin: 0 0 20px 0; text-align: left; }
+
+        /* =========================================
+           3. IL RADAR ANIMATO
+           ========================================= */
+        .radar-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .radar-container {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: 
+                radial-gradient(circle, transparent 30%, rgba(52, 168, 83, 0.2) 31%, transparent 33%, transparent 60%, rgba(52, 168, 83, 0.2) 61%, transparent 63%, transparent 90%, rgba(52, 168, 83, 0.2) 91%),
+                #001100;
+            border: 2px solid #34A853;
+            position: relative;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        .radar-sweep {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 200px; height: 200px;
+            background: conic-gradient(from 0deg, transparent 70%, rgba(52, 168, 83, 0.6) 100%);
+            transform-origin: 0 0;
+            animation: scan 2s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Il puntino rosso: aggiunto un leggero transition per rendere lo spostamento fluido ma scattante */
+        .red-dot {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background-color: #EA4335;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px #EA4335, 0 0 20px #EA4335;
+            animation: pulse 0.8s infinite alternate;
+            z-index: 10;
+            transform: translate(-50%, -50%); /* Centra esattamente sul punto calcolato */
+            transition: top 0.2s ease, left 0.2s ease;
+        }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.6; }
+            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+        }
+
+        /* =========================================
+           4. SCHERMATA RISULTATO
+           ========================================= */
+        .result-screen { display: none; padding: 20px 0; }
+        .result-title { font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        
+        <div id="level-content">
+            <span class="close-x" onclick="triggerGameOver('Hai cliccato la X senza localizzarti!')">&times;</span>
+            <h2>Individuazione Dispositivo</h2>
+            <p>Tocca <b>esattamente</b> il dispositivo sul radar per confermare le tue coordinate prima che si sposti.</p>
+            
+            <div class="radar-wrapper">
+                <div class="radar-container" onclick="triggerGameOver('Hai mancato il bersaglio! Coordinate errate.')">
+                    <div class="radar-sweep"></div>
+                    
+                    <div class="red-dot" id="target-dot" onclick="event.stopPropagation(); triggerSuccess();"></div>
+                </div>
+            </div>
+            
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title"></div>
+        </div>
+
+    </div>
+
+    <script>
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const resultTitle = document.getElementById('result-title');
+        const modalBox = document.getElementById('cookie-modal');
+        const targetDot = document.getElementById('target-dot');
+
+        let moveInterval;
+
+        // --- LOGICA DI MOVIMENTO DEL RADAR ---
+        function moveDot() {
+            // Calcola un angolo casuale a 360 gradi
+            const angle = Math.random() * Math.PI * 2;
+            
+            // Distanza dal centro (fino a un massimo del 38% per evitare che esca dai bordi)
+            const distance = Math.random() * 38; 
+            
+            // Calcola le coordinate X e Y basate sul centro (50%)
+            const topPos = 50 + distance * Math.sin(angle);
+            const leftPos = 50 + distance * Math.cos(angle);
+            
+            targetDot.style.top = topPos + '%';
+            targetDot.style.left = leftPos + '%';
+        }
+
+        // Posiziona il punto inizialmente e imposta il timer
+        moveDot();
+        moveInterval = setInterval(moveDot, 4000);
+
+        // --- VITTORIA E SCONFITTA ---
+        function triggerSuccess() {
+            clearInterval(moveInterval); // Ferma il movimento se si vince
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            resultTitle.style.color = "#34A853";
+            resultTitle.innerText = "✓ ACCETTATO";
+
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1000);
+        }
+
+        function triggerGameOver(reason) {
+            clearInterval(moveInterval); // Ferma il timer
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+    </script>
+</body>
+</html>

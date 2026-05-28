@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 9_2</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO TECH
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.6); 
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+            position: relative;
+            user-select: none; -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        /* =========================================
+           2. GRAFICA MODALE E ARENA
+           ========================================= */
+        #cookie-modal {
+            background-color: #050505;
+            border: 1px solid #440000;
+            border-radius: 16px;
+            padding: 20px;
+            width: 95%;
+            max-width: 440px;
+            box-shadow: 0 10px 50px rgba(200, 0, 0, 0.4);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .header-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .stage-indicator {
+            color: #EA4335;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        h2 { color: #ffffff; margin: 0 0 6px 0; font-size: 16px; font-weight: 600; text-align: left; text-transform: uppercase; }
+        p.desc { color: #888888; font-size: 11px; line-height: 1.4; margin: 0 0 15px 0; text-align: left; }
+
+        /* L'Arena di combattimento */
+        .combat-arena {
+            width: 100%;
+            height: 280px;
+            background-color: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        /* Griglia di background */
+        .combat-arena::before {
+            content: "";
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-image: linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px);
+            background-size: 20px 20px;
+            z-index: 1;
+        }
+
+        /* =========================================
+           3. ENTITÀ DI GIOCO
+           ========================================= */
+        #laser-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        /* Il Tasto "Accetta" (Il Giocatore) */
+        .player-btn {
+            position: absolute;
+            width: 75px;  
+            height: 30px; 
+            background-color: #34A853;
+            color: white;
+            font-weight: bold;
+            font-size: 10px;
+            border: none;
+            border-radius: 6px;
+            z-index: 20;
+            cursor: grab;
+            box-shadow: 0 0 15px rgba(52, 168, 83, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-transform: uppercase;
+        }
+        .player-btn:active { cursor: grabbing; transform: scale(0.95); }
+        .player-btn.safe { box-shadow: 0 0 25px #34A853; animation: pulseWin 1s infinite alternate; cursor: pointer; }
+
+        @keyframes pulseWin {
+            from { box-shadow: 0 0 15px #34A853; }
+            to { box-shadow: 0 0 35px #34A853; }
+        }
+
+        /* I Tasti "Rifiuta" (I Nemici) */
+        .enemy-turret {
+            position: absolute;
+            width: 60px;
+            height: 25px;
+            background-color: #EA4335;
+            color: white;
+            font-weight: bold;
+            font-size: 11px;
+            border: 1px solid #7a0000;
+            border-radius: 4px;
+            z-index: 10;
+            display: none; 
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 10px rgba(234, 67, 53, 0.4);
+            text-transform: uppercase;
+            transition: transform 0.1s;
+        }
+        
+        #enemy-TR { top: 10px; right: 10px; }
+        #enemy-BL { bottom: 10px; left: 10px; }
+
+        /* Proiettili */
+        .bullet {
+            position: absolute;
+            width: 8px; height: 8px;
+            background-color: #EA4335;
+            border-radius: 50%;
+            z-index: 12;
+            box-shadow: 0 0 8px #EA4335;
+        }
+
+        /* =========================================
+           4. SCHERMATA RISULTATO FINALE VITTORIA
+           ========================================= */
+        .result-screen { 
+            display: none; 
+            padding: 35px 10px; 
+        }
+        .result-title { 
+            font-size: 22px; 
+            font-weight: bold; 
+            color: #34A853; 
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        .result-sub {
+            color: #888888;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        <div id="level-content">
+            <div class="header-status">
+                <span class="stage-indicator" id="stage-label">ATTACCO LIVELLO 1 / 2</span>
+            </div>
+            <h2>Difendi il Consenso</h2>
+            <p class="desc">Tieni premuto il tasto verde e trascinalo per schivare le difese immunitarie del sistema. Sopravvivi a tutti e 2 i cicli per poter finalmente accettare il contratto in pace.</p>
+            
+            <div class="combat-arena" id="arena">
+                <svg id="laser-canvas"></svg>
+
+                <div class="enemy-turret" id="enemy-TR">RIFIUTA</div>
+                <div class="enemy-turret" id="enemy-BL">RIFIUTA</div>
+
+                <div class="player-btn" id="player">ACCETTA</div>
+            </div>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div class="result-title">✓ CONTRATTO ACCETTATO</div>
+            <div class="result-sub">Cessione dell'anima completata con successo.</div>
+        </div>
+    </div>
+
+    <script>
+        const arena = document.getElementById('arena');
+        const player = document.getElementById('player');
+        const svgCanvas = document.getElementById('laser-canvas');
+        const stageLabel = document.getElementById('stage-label');
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const modalBox = document.getElementById('cookie-modal');
+
+        const enemies = {
+            TR: document.getElementById('enemy-TR'),
+            BL: document.getElementById('enemy-BL')
+        };
+
+        // --- STATO DEL GIOCO ---
+        let isGameOver = false;
+        let isWin = false;
+        let currentLevel = 1; 
+        let activeEnemies = [];
+        let bullets = [];
+        let lasers = []; 
+
+        let phaseInterval;
+        let shootingInterval;
+
+        // --- POSIZIONE DEL GIOCATORE ---
+        let playerX = 140; 
+        let playerY = 120;
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        const playerRadius = 15; 
+
+        player.style.left = playerX + 'px';
+        player.style.top = playerY + 'px';
+
+        // --- SISTEMA DI TRASCINAMENTO ---
+        player.addEventListener('pointerdown', (e) => {
+            if (isGameOver) return;
+            // Se l'attacco è respinto ed è "safe", il click attiva la vittoria
+            if (isWin && player.classList.contains('safe')) {
+                triggerSuccess();
+                return;
+            }
+            isDragging = true;
+            dragOffsetX = e.clientX - player.getBoundingClientRect().left;
+            dragOffsetY = e.clientY - player.getBoundingClientRect().top;
+            player.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging || isGameOver || isWin) return;
+            
+            const arenaRect = arena.getBoundingClientRect();
+            
+            let newX = e.clientX - arenaRect.left - dragOffsetX;
+            let newY = e.clientY - arenaRect.top - dragOffsetY;
+
+            newX = Math.max(0, Math.min(newX, arenaRect.width - player.offsetWidth));
+            newY = Math.max(0, Math.min(newY, arenaRect.height - player.offsetHeight));
+
+            playerX = newX;
+            playerY = newY;
+            
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+        });
+
+        window.addEventListener('pointerup', () => {
+            isDragging = false;
+            player.style.cursor = player.classList.contains('safe') ? 'pointer' : 'grab';
+        });
+
+        // --- LOGICA DI COMBATTIMENTO ---
+        function startBossFight() {
+            startLevel(1);
+        }
+
+        function startLevel(level) {
+            currentLevel = level;
+            stageLabel.innerText = `ATTACCO LIVELLO ${level} / 2`;
+            
+            if (level === 2) {
+                stageLabel.style.color = "#ff0000";
+            }
+
+            activeEnemies.forEach(id => enemies[id].style.display = 'none');
+            
+            if (level === 1) activeEnemies = ['TR'];
+            if (level === 2) activeEnemies = ['TR', 'BL'];
+
+            activeEnemies.forEach(id => enemies[id].style.display = 'flex');
+            startPhase1();
+        }
+
+        // FASE 1: Anelli di proiettili
+        function startPhase1() {
+            let shotsFired = 0;
+            const maxShots = 4; 
+
+            shootingInterval = setInterval(() => {
+                if (isGameOver) {
+                    clearInterval(shootingInterval);
+                    return;
+                }
+                
+                activeEnemies.forEach(id => {
+                    const el = enemies[id];
+                    const ex = el.offsetLeft + el.offsetWidth / 2;
+                    const ey = el.offsetTop + el.offsetHeight / 2;
+                    
+                    // IMPOSTATO A 10 COME RICHIESTO (era 12)
+                    const numBullets = 10; 
+                    for (let i = 0; i < numBullets; i++) {
+                        const angle = (i / numBullets) * Math.PI * 2;
+                        const speed = 1.3; 
+
+                        const bulletEl = document.createElement('div');
+                        bulletEl.className = 'bullet';
+                        bulletEl.style.left = ex + 'px';
+                        bulletEl.style.top = ey + 'px';
+                        arena.appendChild(bulletEl);
+
+                        bullets.push({
+                            element: bulletEl,
+                            x: ex, y: ey,
+                            vx: Math.cos(angle) * speed,
+                            vy: Math.sin(angle) * speed
+                        });
+                    }
+                });
+
+                shotsFired++;
+                if (shotsFired >= maxShots) {
+                    clearInterval(shootingInterval);
+                    setTimeout(startPhase2, 1000);
+                }
+            }, 800); 
+        }
+
+        // FASE 2: Laser con COUNTDOWN visivo e inerzia maggiorata
+        function startPhase2() {
+            if (isGameOver) return;
+            
+            svgCanvas.innerHTML = ''; 
+            lasers = [];
+
+            activeEnemies.forEach(id => {
+                const el = enemies[id];
+                const ex = el.offsetLeft + el.offsetWidth / 2;
+                const ey = el.offsetTop + el.offsetHeight / 2;
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', ex);
+                line.setAttribute('y1', ey);
+                line.setAttribute('stroke-width', '2');
+                line.setAttribute('stroke-dasharray', '5,5'); 
+                line.setAttribute('stroke', 'rgba(255, 200, 0, 0.7)'); 
+                svgCanvas.appendChild(line);
+
+                lasers.push({
+                    element: line,
+                    ex: ex, ey: ey,
+                    state: 'tracking', 
+                    targetX: 0, targetY: 0,
+                    dx: 0, dy: 0,
+                    aimX: playerX + player.offsetWidth / 2,
+                    aimY: playerY + player.offsetHeight / 2
+                });
+
+                el.innerText = "3";
+                el.style.transform = "scale(1.1)";
+            });
+
+            let countdown = 3;
+
+            phaseInterval = setInterval(() => {
+                if (isGameOver) {
+                    clearInterval(phaseInterval);
+                    return;
+                }
+                
+                countdown--;
+                
+                if (countdown > 0) {
+                    activeEnemies.forEach(id => {
+                        enemies[id].innerText = countdown;
+                        enemies[id].style.transform = countdown % 2 === 0 ? "scale(1)" : "scale(1.1)";
+                    });
+                } else {
+                    clearInterval(phaseInterval);
+                    
+                    activeEnemies.forEach(id => {
+                        enemies[id].innerText = "ZAP!";
+                        enemies[id].style.transform = "scale(1.2)";
+                    });
+
+                    lasers.forEach(l => {
+                        l.state = 'firing';
+                        l.element.setAttribute('stroke-width', '8');
+                        l.element.setAttribute('stroke-dasharray', 'none');
+                        l.element.setAttribute('stroke', 'rgba(234, 67, 53, 0.9)'); 
+                    });
+
+                    setTimeout(() => {
+                        if (isGameOver) return;
+                        svgCanvas.innerHTML = '';
+                        lasers = [];
+                        
+                        activeEnemies.forEach(id => {
+                            enemies[id].innerText = "RIFIUTA";
+                            enemies[id].style.transform = "scale(1)";
+                        });
+
+                        if (currentLevel < 2) {
+                            startLevel(currentLevel + 1);
+                        } else {
+                            winGame();
+                        }
+                    }, 1500);
+                }
+            }, 1000); 
+        }
+
+        // --- CORE ENGINE (60 FPS) ---
+        function gameLoop() {
+            if (isGameOver) return;
+
+            const pcX = playerX + player.offsetWidth / 2;
+            const pcY = playerY + player.offsetHeight / 2;
+
+            if (!isWin) {
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    let b = bullets[i];
+                    b.x += b.vx;
+                    b.y += b.vy;
+                    b.element.style.left = b.x + 'px';
+                    b.element.style.top = b.y + 'px';
+
+                    let dist = Math.hypot(b.x - pcX, b.y - pcY);
+                    if (dist < playerRadius) {
+                        die("Il tuo Consenso è stato frammentato da un proiettile di rifiuto!");
+                        return;
+                    }
+
+                    if (b.x < -20 || b.x > arena.clientWidth + 20 || b.y < -20 || b.y > arena.clientHeight + 20) {
+                        b.element.remove();
+                        bullets.splice(i, 1);
+                    }
+                }
+
+                lasers.forEach(l => {
+                    if (l.state === 'tracking') {
+                        l.aimX += (pcX - l.aimX) * 0.03;
+                        l.aimY += (pcY - l.aimY) * 0.03;
+
+                        let angle = Math.atan2(l.aimY - l.ey, l.aimX - l.ex);
+                        l.targetX = l.ex + Math.cos(angle) * 1000;
+                        l.targetY = l.ey + Math.sin(angle) * 1000;
+                        l.dx = Math.cos(angle);
+                        l.dy = Math.sin(angle);
+                    }
+                    
+                    l.element.setAttribute('x2', l.targetX);
+                    l.element.setAttribute('y2', l.targetY);
+
+                    if (l.state === 'firing') {
+                        const num = Math.abs((l.targetY - l.ey) * pcX - (l.targetX - l.ex) * pcY + l.targetX * l.ey - l.targetY * l.ex);
+                        const den = Math.hypot(l.targetY - l.ey, l.targetX - l.ex);
+                        const distance = num / den;
+
+                        const dotProduct = (pcX - l.ex) * l.dx + (pcY - l.ey) * l.dy;
+
+                        if (distance < playerRadius - 2 && dotProduct > 0) {
+                            die("Il tuo Consenso è stato vaporizzato dal raggio!");
+                            return;
+                        }
+                    }
+                });
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function die(reason) {
+            isGameOver = true;
+            clearInterval(shootingInterval);
+            clearInterval(phaseInterval);
+            player.style.backgroundColor = "#EA4335";
+            player.innerText = "DISTRUTTO";
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+
+        function winGame() {
+            isWin = true;
+            Object.keys(enemies).forEach(id => enemies[id].style.display = 'none');
+            
+            stageLabel.innerText = "ATTACCO RESPINTO!";
+            stageLabel.style.color = "#34A853";
+            document.querySelector('.desc').innerText = "Hai sopravvissuto alla follia. Ora puoi cliccare il tasto verde in totale sicurezza.";
+
+            player.classList.add('safe');
+            player.innerText = "ACCETTA";
+            
+            player.style.left = `calc(50% - 37.5px)`;
+            player.style.top = `calc(50% - 15px)`;
+            player.style.transition = "all 0.5s ease"; 
+        }
+
+        // --- CAMBIO SCHERMATA POST-CLICK DI VITTORIA ---
+        function triggerSuccess() {
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1200);
+        }
+
+        window.onload = () => {
+            requestAnimationFrame(gameLoop);
+            setTimeout(startBossFight, 1500);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 9_1</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO TECH
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.5); 
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+            position: relative;
+            user-select: none; -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        /* =========================================
+           2. GRAFICA DELLA FINESTRA BANNER
+           ========================================= */
+        #cookie-modal {
+            background-color: #050505;
+            border: 1px solid #440000;
+            border-radius: 16px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 50px rgba(200, 0, 0, 0.3);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .header-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stage-indicator {
+            color: #EA4335;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .lives-container {
+            color: #EA4335;
+            font-size: 14px;
+            letter-spacing: 2px;
+        }
+
+        h2 { color: #ffffff; margin: 0 0 10px 0; font-size: 15px; font-weight: 600; text-align: left; text-transform: uppercase; }
+
+        /* =========================================
+           3. TESTO LEGALE (Le Munizioni)
+           ========================================= */
+        #legalese-text {
+            color: #555555;
+            font-size: 10px;
+            line-height: 1.45;
+            text-align: justify;
+            margin: 0 0 20px 0;
+            height: 75px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+        }
+
+        .char-span {
+            display: inline-block;
+            transition: opacity 0.1s;
+        }
+
+        /* =========================================
+           4. LA BARRA E L'OMINO OPZIONE A (WIREFRAME)
+           ========================================= */
+        .track-container {
+            width: 100%;
+            height: 22px; 
+            background-color: #111;
+            border: 1px solid #333;
+            border-radius: 4px;
+            position: relative;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        .character {
+            width: 16px;   /* <--- OPZIONE A: Dimensioni controllate */
+            height: 18px;  /* <--- OPZIONE A: Dimensioni controllate */
+            position: absolute;
+            top: 1px;
+            left: 0%;
+            z-index: 10;
+            transition: transform 0.1s;
+            filter: drop-shadow(0 0 3px #4285F4); /* <--- Aura Neon Blu */
+        }
+
+        .character.hit {
+            filter: drop-shadow(0 0 8px #EA4335);
+            transform: scale(1.3) rotate(-20deg);
+        }
+
+        .goal-line {
+            position: absolute;
+            right: 0; top: 0; bottom: 0;
+            width: 12%; 
+            background: repeating-linear-gradient(
+                45deg,
+                #34A853,
+                #34A853 4px,
+                #111 4px,
+                #111 8px
+            );
+            border-radius: 0 3px 3px 0;
+            box-shadow: inset 0 0 5px rgba(52, 168, 83, 0.5);
+        }
+
+        /* =========================================
+           5. CONTROLLI E PROIETTILI
+           ========================================= */
+        .btn-move {
+            width: 100%;
+            padding: 14px 0;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            background-color: #4285F4;
+            color: #ffffff;
+            text-transform: uppercase;
+            box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3);
+            user-select: none;
+        }
+        .btn-move:active, .btn-move.pressed {
+            transform: scale(0.98);
+            background-color: #3367D6;
+        }
+
+        .hint {
+            font-size: 9px; color: #666; margin-top: 8px; display: block;
+        }
+
+        .falling-letter {
+            position: absolute;
+            color: #EA4335; 
+            font-size: 13px;
+            font-weight: bold;
+            z-index: 20;
+            pointer-events: none;
+            text-shadow: 0 0 4px #EA4335;
+            line-height: 1;
+        }
+
+        /* =========================================
+           6. SCHERMATA RISULTATO
+           ========================================= */
+        .result-screen { display: none; padding: 25px 0; }
+        .result-title { font-size: 24px; font-weight: bold; color: #EA4335; }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        <div id="level-content">
+            <div class="header-status">
+                <span class="stage-indicator">Contratto di Cessione Eterna</span>
+                <span class="lives-container" id="lives-label">❤️❤️❤️</span>
+            </div>
+            <h2>Firma con l'Anima</h2>
+            
+            <div id="legalese-text"></div>
+
+            <div class="track-container" id="track">
+                <div class="goal-line"></div>
+                <!-- OPZIONE A: Omino Vettoriale SVG Minimalista Wireframe -->
+                <div class="character" id="player">
+                    <svg viewBox="0 0 24 28" width="100%" height="100%">
+                        <!-- Testa -->
+                        <circle cx="12" cy="5" r="4" fill="#ffffff" />
+                        <!-- Busto -->
+                        <line x1="12" y1="9" x2="12" y2="18" stroke="#ffffff" stroke-width="2" stroke-linecap="round" />
+                        <!-- Braccia -->
+                        <line x1="12" y1="12" x2="6" y2="15" stroke="#ffffff" stroke-width="2" stroke-linecap="round" />
+                        <line x1="12" y1="12" x2="18" y2="15" stroke="#ffffff" stroke-width="2" stroke-linecap="round" />
+                        <!-- Gambe -->
+                        <line x1="12" y1="18" x2="7" y2="26" stroke="#ffffff" stroke-width="2" stroke-linecap="round" />
+                        <line x1="12" y1="18" x2="17" y2="26" stroke="#ffffff" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </div>
+            </div>
+
+            <button class="btn-move" id="btn-move">TIENI PREMUTO PER AVANZARE</button>
+            <span class="hint">Supporta anche la BARRA SPAZIATRICE</span>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title">✓ ANIMA ACQUISITA</div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================
+        // PANNELLO DI CONTROLLO AGGIORNATO
+        // =========================================================
+        const GAME_CONFIG = {
+            forwardSpeed: 0.42,   
+            backwardSpeed: 0.12,  
+            spawnInterval: 120,   
+            fallSpeed: 1.0,       // <--- IMPOSTATA A 1 COME RICHIESTO
+            knockback: 20,        
+            maxLives: 3           
+        };
+        // =========================================================
+
+        const rawLegalese = "Ai sensi dell'art.666 sulla profilazione eterna, l'utente cede irrevocabilmente i diritti sul proprio spirito digitale. La mancata lettura di queste clausole non esonera dalla dannazione algoritmica. In caso di insolvenza, i nostri demoni legali procederanno al pignoramento karmico diretto. Firmando, rinunci al libero arbitrio.";
+
+        const legaleseContainer = document.getElementById('legalese-text');
+        const playerEl = document.getElementById('player');
+        const trackEl = document.getElementById('track');
+        const btnMove = document.getElementById('btn-move');
+        const livesLabel = document.getElementById('lives-label');
+        const modalBox = document.getElementById('cookie-modal');
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+
+        let charSpans = [];
+        let fallingProjectiles = [];
+        let playerPos = 0; 
+        let isMoving = false;
+        let lives = GAME_CONFIG.maxLives;
+        let isGameOver = false;
+        let spawnTimer;
+
+        // --- INIZIALIZZAZIONE TESTO ---
+        function initText() {
+            for (let i = 0; i < rawLegalese.length; i++) {
+                let char = rawLegalese[i];
+                let span = document.createElement('span');
+                
+                if (char === ' ') {
+                    span.innerHTML = '&nbsp;'; 
+                } else {
+                    span.innerText = char;
+                    span.className = 'char-span';
+                    charSpans.push(span); 
+                }
+                legaleseContainer.appendChild(span);
+            }
+        }
+
+        // --- CONTROLLI ---
+        function startMove(e) {
+            if (isGameOver) return;
+            if (e && e.preventDefault && e.type !== 'keydown') e.preventDefault();
+            isMoving = true;
+            btnMove.classList.add('pressed');
+        }
+
+        function stopMove(e) {
+            if (e && e.preventDefault && e.type !== 'keyup') e.preventDefault();
+            isMoving = false;
+            btnMove.classList.remove('pressed');
+        }
+
+        btnMove.addEventListener('pointerdown', startMove);
+        window.addEventListener('pointerup', stopMove);
+        window.addEventListener('pointercancel', stopMove);
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                startMove();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') stopMove();
+        });
+
+        // --- SISTEMA DI SPAWN CON ZONA DI SICUREZZA INIZIALE ---
+        function spawnLetter() {
+            if (isGameOver) return;
+
+            if (charSpans.length === 0) {
+                clearInterval(spawnTimer);
+                return;
+            }
+
+            const trackRect = trackEl.getBoundingClientRect();
+            const modalRect = modalBox.getBoundingClientRect();
+            const trackLeftRelative = trackRect.left - modalRect.left;
+            const safeZoneWidth = 45; // Ampiezza dell'area protetta a sinistra (in pixel)
+
+            let randomIndex;
+            let sourceSpan;
+            let startX;
+            let startY;
+            let attempts = 0;
+
+            // Loop intelligente: se pesca una lettera che cadrebbe sopra la posizione iniziale, 
+            // rimescola e ne cerca un'altra, proteggendo l'omino alla partenza.
+            do {
+                randomIndex = Math.floor(Math.random() * charSpans.length);
+                sourceSpan = charSpans[randomIndex];
+                const spanRect = sourceSpan.getBoundingClientRect();
+                startX = spanRect.left - modalRect.left;
+                startY = spanRect.top - modalRect.top;
+                attempts++;
+                
+                if (startX >= (trackLeftRelative + safeZoneWidth)) {
+                    break; 
+                }
+            } while (attempts < 40 && charSpans.length > 1);
+
+            // Rimuove la lettera selezionata dal testo
+            charSpans.splice(randomIndex, 1);
+            sourceSpan.style.opacity = '0'; 
+
+            const projectile = document.createElement('div');
+            projectile.className = 'falling-letter';
+            projectile.innerText = sourceSpan.innerText;
+            projectile.style.left = startX + 'px';
+            projectile.style.top = startY + 'px';
+            
+            modalBox.appendChild(projectile);
+
+            fallingProjectiles.push({
+                element: projectile,
+                x: startX,
+                y: startY,
+                width: sourceSpan.getBoundingClientRect().width,
+                height: sourceSpan.getBoundingClientRect().height
+            });
+        }
+
+        // --- CORE LOOP ---
+        function gameLoop() {
+            if (isGameOver) return;
+
+            if (isMoving) {
+                playerPos += GAME_CONFIG.forwardSpeed;
+            } else {
+                playerPos -= GAME_CONFIG.backwardSpeed;
+            }
+
+            playerPos = Math.max(0, Math.min(100, playerPos));
+            playerEl.style.left = `calc(${playerPos}% - ${playerPos * 0.16}px)`; 
+
+            // Traguardo (Zona verde ampliata del 12%, si vince all'88%)
+            if (playerPos >= 88) {
+                triggerSuccess();
+                return;
+            }
+
+            // Controllo svuotamento testo
+            if (charSpans.length === 0 && fallingProjectiles.length === 0 && playerPos < 88) {
+                triggerGameOver("Il testo si è svuotato del tutto! Non hai firmato in tempo.");
+                return;
+            }
+
+            // Movimento proiettili e controllo collisioni
+            const playerRect = playerEl.getBoundingClientRect();
+
+            for (let i = fallingProjectiles.length - 1; i >= 0; i--) {
+                let p = fallingProjectiles[i];
+                p.y += GAME_CONFIG.fallSpeed;
+                p.element.style.top = p.y + 'px';
+
+                const pRect = p.element.getBoundingClientRect();
+
+                if (
+                    pRect.left < playerRect.right &&
+                    pRect.right > playerRect.left &&
+                    pRect.top < playerRect.bottom &&
+                    pRect.bottom > playerRect.top
+                ) {
+                    handleHit();
+                    p.element.remove();
+                    fallingProjectiles.splice(i, 1);
+                    continue;
+                }
+
+                if (p.y > modalBox.clientHeight) {
+                    p.element.remove();
+                    fallingProjectiles.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function handleHit() {
+            lives--;
+            updateLivesDisplay();
+            
+            playerEl.classList.add('hit');
+            setTimeout(() => playerEl.classList.remove('hit'), 200);
+
+            playerPos = Math.max(0, playerPos - GAME_CONFIG.knockback);
+
+            if (lives <= 0) {
+                triggerGameOver("Hai esaurito le 3 vite! Sotto il peso dei vincoli contrattuali.");
+            }
+        }
+
+        function updateLivesDisplay() {
+            let hearts = "";
+            for (let i = 0; i < GAME_CONFIG.maxLives; i++) {
+                hearts += (i < lives) ? "❤️" : "🖤";
+            }
+            livesLabel.innerText = hearts;
+        }
+
+        function triggerSuccess() {
+            isGameOver = true;
+            clearInterval(spawnTimer);
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #EA4335";
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1000);
+        }
+
+        function triggerGameOver(reason) {
+            isGameOver = true;
+            clearInterval(spawnTimer);
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+
+        window.onload = () => {
+            initText();
+            spawnTimer = setInterval(spawnLetter, GAME_CONFIG.spawnInterval);
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>

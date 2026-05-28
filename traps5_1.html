@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 5_1</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            background-color: rgba(0, 0, 0, 0.4); 
+            user-select: none; -webkit-user-select: none;
+            position: relative; /* Necessario per posizionare la seconda finestra */
+        }
+
+        /* =========================================
+           2. GRAFICA FINESTRA PRINCIPALE
+           ========================================= */
+        #cookie-modal {
+            background-color: #000000;
+            border: 1px solid #555555;
+            border-radius: 16px;
+            padding: 30px 20px 25px 20px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+            z-index: 2;
+        }
+
+        .close-x {
+            position: absolute; top: 12px; right: 16px;
+            font-size: 20px; color: #888888; cursor: pointer; font-weight: bold;
+        }
+
+        h2 { color: #ffffff; margin: 0 0 12px 0; font-size: 18px; font-weight: 600; text-align: left; }
+        p { color: #cccccc; font-size: 13px; line-height: 1.5; margin: 0 0 20px 0; text-align: left; }
+
+        /* =========================================
+           3. CASELLA DI TESTO E BOTTONE
+           ========================================= */
+        .otp-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 20px;
+            font-weight: bold;
+            font-family: monospace;
+            text-align: center;
+            letter-spacing: 4px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            border: 2px solid #444444;
+            border-radius: 8px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .otp-input:focus { border-color: #4285F4; }
+
+        .btn-verifica {
+            width: 100%;
+            padding: 14px 0;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            background-color: #4285F4;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            transition: transform 0.1s;
+        }
+        .btn-verifica:active { transform: scale(0.97); }
+
+        /* =========================================
+           4. FINESTRA DEL TOKEN (In basso a dx)
+           ========================================= */
+        #token-modal {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: #000000;
+            border: 1px solid #555555;
+            border-radius: 12px;
+            padding: 15px;
+            width: 140px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.9);
+            text-align: center;
+            z-index: 10;
+        }
+
+        .token-title { color: #cccccc; font-size: 13px; margin: 0 0 8px 0; font-weight: 600; }
+        
+        .token-display {
+            font-family: monospace;
+            font-size: 24px;
+            font-weight: bold;
+            color: #34A853; /* Verde stile Matrix/Hacker */
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+
+        /* Barra del tempo */
+        .progress-bg {
+            width: 100%;
+            height: 6px;
+            background-color: #333333;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 100%;
+            background-color: #EA4335; /* Rosso ansia */
+            /* La transizione verrà gestita dal JS */
+        }
+
+        /* =========================================
+           5. SCHERMATA RISULTATO
+           ========================================= */
+        .result-screen { display: none; padding: 20px 0; }
+        .result-title { font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        <div id="level-content">
+            <span class="close-x" onclick="triggerGameOver('Hai cliccato la X senza inserire il codice!')">&times;</span>
+            <h2>Verifica Identità</h2>
+            <p>Per abilitare il tracciamento inter-sito, inserisci il codice di sicurezza generato dal tuo Token OTP prima che scada.</p>
+            
+            <input type="tel" id="otp-input" class="otp-input" maxlength="4" placeholder="••••" autocomplete="off">
+            <button class="btn-verifica" onclick="checkOTP()">VERIFICA</button>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title"></div>
+        </div>
+    </div>
+
+    <div id="token-modal">
+        <p class="token-title">Codice OTP</p>
+        <div id="token-display" class="token-display">0000</div>
+        <div class="progress-bg">
+            <div id="token-bar" class="progress-bar"></div>
+        </div>
+    </div>
+
+    <script>
+        const otpInput = document.getElementById('otp-input');
+        const tokenDisplay = document.getElementById('token-display');
+        const tokenBar = document.getElementById('token-bar');
+        
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const resultTitle = document.getElementById('result-title');
+        const modalBox = document.getElementById('cookie-modal');
+        const tokenModal = document.getElementById('token-modal');
+
+        let currentOTP = "";
+        let otpTimer;
+
+        // --- GESTIONE DEL CICLO OTP (10 Secondi) ---
+        function generateCycle() {
+            // Genera un codice casuale di 4 cifre (da 1000 a 9999)
+            currentOTP = Math.floor(1000 + Math.random() * 9000).toString();
+            tokenDisplay.innerText = currentOTP;
+
+            // Resetta l'animazione della barra
+            tokenBar.style.transition = 'none';
+            tokenBar.style.width = '100%';
+
+            // Forza il browser a ridisegnare la barra per applicare il reset
+            void tokenBar.offsetWidth;
+
+            // Fa partire l'animazione di svuotamento (dura esattamente 5 secondi lineari)
+            tokenBar.style.transition = 'width 5s linear';
+            tokenBar.style.width = '0%';
+
+            // Imposta il timer per ripetere il ciclo tra 5 secondi
+            clearTimeout(otpTimer);
+            otpTimer = setTimeout(generateCycle, 5000);
+        }
+
+        // Avvia il primissimo ciclo appena si apre la pagina
+        generateCycle();
+
+        // Forza il focus sull'input per comodità dell'utente
+        otpInput.focus();
+
+        // --- VERIFICA DEL CODICE ---
+        function checkOTP() {
+            const userCode = otpInput.value.trim();
+            
+            if (userCode === currentOTP) {
+                triggerSuccess();
+            } else {
+                triggerGameOver("Codice OTP errato! Forse è scaduto mentre digitavi?");
+            }
+        }
+
+        // --- VITTORIA E SCONFITTA ---
+        function triggerSuccess() {
+            clearTimeout(otpTimer); // Ferma il ciclo del token
+            tokenModal.style.display = 'none'; // Nasconde il token
+            
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            resultTitle.style.color = "#34A853";
+            resultTitle.innerText = "✓ ACCETTATO";
+
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1000);
+        }
+
+        function triggerGameOver(reason) {
+            clearTimeout(otpTimer); // Ferma il ciclo del token
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+    </script>
+</body>
+</html>

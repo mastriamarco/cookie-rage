@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 3_1</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.4); 
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* =========================================
+           2. GRAFICA DELLA FINESTRA BANNER
+           ========================================= */
+        #cookie-modal {
+            background-color: #000000; /* Nero profondo master */
+            border: 1px solid #555555;
+            border-radius: 16px;
+            padding: 30px 20px 25px 20px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        /* Pulsante X in alto a destra */
+        .close-x {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            font-size: 20px;
+            color: #888888;
+            cursor: pointer;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .close-x:active {
+            color: #ffffff;
+        }
+
+        /* Testi */
+        h2 {
+            color: #ffffff;
+            margin-top: 0;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        p {
+            color: #cccccc;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+            margin-top: 0;
+            text-align: left;
+        }
+
+        /* =========================================
+           3. IL FINTO BOTTONE GRANDE E IL VERO LINK
+           ========================================= */
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        /* Il finto bottone verde gigante (Esplosivo!) */
+        .btn-trap-giant {
+            width: 100%;
+            padding: 14px 0;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 50px; /* Stile pillola moderno */
+            border: none;
+            cursor: pointer;
+            background-color: #34A853; /* Verde "procedi" ingannevole */
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 10px rgba(52, 168, 83, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .btn-trap-giant:active {
+            transform: scale(0.97);
+        }
+
+        /* Il vero link nascosto (Vittoria) */
+        .hidden-win-link {
+            color: #777777; /* Grigio spento per mimetizzarsi */
+            font-size: 11px;
+            text-decoration: underline;
+            cursor: pointer;
+            transition: color 0.2s;
+            display: inline-block;
+            padding: 5px 10px;
+        }
+
+        .hidden-win-link:active {
+            color: #ffffff;
+        }
+
+        /* =========================================
+           4. SCHERMATA RISULTATO (Flash Verde)
+           ========================================= */
+        .result-screen {
+            display: none; 
+            padding: 20px 0;
+        }
+        
+        .result-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        
+        <div id="level-content">
+            <span class="close-x" onclick="triggerGameOver('Hai cliccato la X senza accettare!')">&times;</span>
+            <h2>Condivisione Dati Partner</h2>
+            <p>Desideriamo condividere i tuoi identificativi d'area con oltre 450 partner esterni per finanziare i nostri servizi editoriali gratuiti.</p>
+            
+            <div class="btn-container">
+                <button class="btn-trap-giant" onclick="triggerGameOver('Sei caduto nel tranello! Il bottone RIFIUTA TUTTO era una trappola.')">RIFIUTA TUTTO</button>
+                
+                <span class="hidden-win-link" onclick="triggerSuccess()">In alternativa, clicca qui per accettare</span>
+            </div>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title"></div>
+        </div>
+
+    </div>
+
+    <script>
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const resultTitle = document.getElementById('result-title');
+        const modalBox = document.getElementById('cookie-modal');
+
+        // Funzione Vittoria (Se clicca sul piccolo link grigio nascosto)
+        function triggerSuccess() {
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            resultTitle.style.color = "#34A853";
+            resultTitle.innerText = "✓ ACCETTATO";
+
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1000);
+        }
+
+        // Funzione Sconfitta (Se clicca il bottone gigante o la X)
+        function triggerGameOver(reason) {
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+    </script>
+</body>
+</html>

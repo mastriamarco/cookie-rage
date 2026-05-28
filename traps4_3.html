@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 4_3</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            background-color: rgba(0, 0, 0, 0.4); 
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* =========================================
+           2. GRAFICA DELLA FINESTRA BANNER
+           ========================================= */
+        #cookie-modal {
+            background-color: #000000;
+            border: 1px solid #555555;
+            border-radius: 16px;
+            padding: 30px 20px 25px 20px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .close-x {
+            position: absolute; top: 12px; right: 16px;
+            font-size: 20px; color: #888888; cursor: pointer; font-weight: bold;
+        }
+
+        h2 { color: #ffffff; margin: 0 0 12px 0; font-size: 18px; font-weight: 600; text-align: left; }
+        p { color: #cccccc; font-size: 13px; line-height: 1.5; margin: 0 0 20px 0; text-align: left; }
+
+        /* =========================================
+           3. LISTA CHECKBOX
+           ========================================= */
+        .checkbox-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .custom-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: #ffffff;
+            padding: 8px;
+            background-color: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .custom-checkbox:active {
+            background-color: #2a2a2a;
+        }
+
+        .custom-checkbox input {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: #34A853; 
+        }
+
+        /* =========================================
+           4. BOTTONE E SCHERMATA RISULTATO
+           ========================================= */
+        .btn-conferma {
+            width: 100%;
+            padding: 14px 0;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            background-color: #4285F4;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            transition: transform 0.1s;
+        }
+
+        .btn-conferma:active { transform: scale(0.97); }
+
+        .result-screen { display: none; padding: 20px 0; }
+        .result-title { font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        
+        <div id="level-content">
+            <span class="close-x" onclick="triggerGameOver('Hai cliccato la X senza accettare!')">&times;</span>
+            <h2>Autorizzazioni di Rete</h2>
+            <p>Per localizzarti con successo, richiediamo l'accesso simultaneo ai tuoi sensori di rete. Spunta tutte le opzioni necessarie.</p>
+            
+            <div class="checkbox-container">
+                <label class="custom-checkbox">
+                    <input type="checkbox" id="chk-gps" class="troll-box"> Rilevamento GPS
+                </label>
+                <label class="custom-checkbox">
+                    <input type="checkbox" id="chk-wifi" class="troll-box"> Triangolazione Wi-Fi
+                </label>
+                <label class="custom-checkbox">
+                    <input type="checkbox" id="chk-bt" class="troll-box"> Scansione Bluetooth
+                </label>
+            </div>
+            
+            <button class="btn-conferma" onclick="checkLogic()">CONFERMA ACCESSO</button>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title"></div>
+        </div>
+
+    </div>
+
+    <script>
+        const chkGps = document.getElementById('chk-gps');
+        const chkWifi = document.getElementById('chk-wifi');
+        const chkBt = document.getElementById('chk-bt');
+        const trollBoxes = document.querySelectorAll('.troll-box');
+
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const resultTitle = document.getElementById('result-title');
+        const modalBox = document.getElementById('cookie-modal');
+
+        // --- LOGICA DEL RAGE (Disattivazione a rotazione) ---
+        let touchCount = 0;
+        let checkedOrder = []; // Coda per ricordare chi è stato spuntato per primo
+
+        trollBoxes.forEach(box => {
+            box.addEventListener('change', function() {
+                touchCount++; // Conta ogni interazione
+
+                if (this.checked) {
+                    checkedOrder.push(this.id); // Aggiungi alla coda
+                    
+                    // Se siamo a meno di 7 tocchi totali e cerca di avere tutte e 3 le spunte
+                    if (touchCount <= 7 && checkedOrder.length > 2) {
+                        // Rimuovi la prima spunta inserita
+                        const oldestBoxId = checkedOrder.shift(); 
+                        document.getElementById(oldestBoxId).checked = false;
+                    }
+                } else {
+                    // Se l'utente rimuove la spunta manualmente, toglila dalla memoria
+                    checkedOrder = checkedOrder.filter(id => id !== this.id);
+                }
+            });
+        });
+
+        // --- LOGICA DI VITTORIA/SCONFITTA ---
+        function checkLogic() {
+            if (chkGps.checked && chkWifi.checked && chkBt.checked) {
+                triggerSuccess();
+            } else {
+                triggerGameOver('Hai dimenticato di spuntare tutte e 3 le autorizzazioni!');
+            }
+        }
+
+        function triggerSuccess() {
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            resultTitle.style.color = "#34A853";
+            resultTitle.innerText = "✓ ACCETTATO";
+
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1000);
+        }
+
+        function triggerGameOver(reason) {
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 6_2</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            background-color: rgba(0, 0, 0, 0.4); 
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* =========================================
+           2. GRAFICA DELLA FINESTRA BANNER
+           ========================================= */
+        #cookie-modal {
+            background-color: #000000;
+            border: 1px solid #555555;
+            border-radius: 16px;
+            padding: 25px 20px 20px 20px;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .close-x {
+            position: absolute; top: 12px; right: 16px;
+            font-size: 20px; color: #888888; cursor: pointer; font-weight: bold;
+        }
+
+        h2 { color: #ffffff; margin: 0 0 10px 0; font-size: 18px; font-weight: 600; text-align: left; }
+        p { color: #cccccc; font-size: 13px; line-height: 1.4; margin: 0 0 15px 0; text-align: left; }
+
+        /* =========================================
+           3. IL CAMPO MINATO (Pillole Interessi)
+           ========================================= */
+        .pills-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            max-height: 220px;
+            overflow-y: auto; /* Permette lo scroll se lo schermo è piccolo */
+            padding: 5px;
+            border: 1px solid #222;
+            border-radius: 8px;
+            background-color: #0a0a0a;
+            margin-bottom: 15px;
+        }
+
+        /* Scrollbar sottile personalizzata */
+        .pills-container::-webkit-scrollbar { width: 4px; }
+        .pills-container::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+        .pill {
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: 500;
+            border-radius: 50px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            border: 1px solid #333333;
+            cursor: pointer;
+            transition: background-color 0.15s, border-color 0.15s;
+        }
+
+        /* Stato selezionato (Pillole corrette) */
+        .pill.selected {
+            background-color: #4285F4;
+            border-color: #4285F4;
+            color: #ffffff;
+        }
+
+        /* =========================================
+           4. BOTTONE DI CONFERMA (Nascosto all'inizio)
+           ========================================= */
+        .btn-wrapper {
+            height: 45px; /* Evita lo scatto grafico quando appare il bottone */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-conferma {
+            display: none; /* Appare solo a obiettivo raggiunto */
+            width: 100%;
+            padding: 12px 0;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            background-color: #34A853; /* Verde successo */
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* =========================================
+           5. SCHERMATA RISULTATO
+           ========================================= */
+        .result-screen { display: none; padding: 20px 0; }
+        .result-title { font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="cookie-modal">
+        <div id="level-content">
+            <span class="close-x" onclick="triggerGameOver('Hai cliccato la X senza salvare le preferenze!')">&times;</span>
+            <h2>Personalizza Annunci</h2>
+            <p>Seleziona <b>tutti</b> i tuoi interessi commerciali per aiutarci a profilare la tua identità digitale in modo accurato.</p>
+            
+            <div class="pills-container" id="pills-container"></div>
+            
+            <div class="btn-wrapper">
+                <button class="btn-conferma" id="btn-conferma" onclick="triggerSuccess()">SALVA PROFILO</button>
+            </div>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title"></div>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('pills-container');
+        const btnConferma = document.getElementById('btn-conferma');
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const resultTitle = document.getElementById('result-title');
+        const modalBox = document.getElementById('cookie-modal');
+
+        let selectedGoodCount = 0;
+        const totalGoodRequired = 16;
+
+        // Lista dei 20 elementi: 16 reali e 4 mine posizionate a tradimento
+        const itemsDataset = [
+            { text: "Sport", isTrap: false },
+            { text: "Tech", isTrap: false },
+            { text: "Cucina", isTrap: false },
+            { text: "Moda", isTrap: false },
+            { text: "Finanza", isTrap: false },
+            { text: "Viaggi", isTrap: false },
+            { text: "Musica", isTrap: false },
+            { text: "Cinema", isTrap: false },
+            { text: "Libri", isTrap: false },
+            { text: "Motori", isTrap: false },
+            { text: "Gaming", isTrap: false },
+            { text: "Arte", isTrap: false },
+            { text: "Scienza", isTrap: false },
+            { text: "Salute", isTrap: false },
+            { text: "Natura", isTrap: false },
+            { text: "Fumetti", isTrap: false },
+            { text: "Mi rifiuto", isTrap: true },
+            { text: "Fatti miei", isTrap: true },
+            { text: "Non voglio", isTrap: true },
+            { text: "Annulla", isTrap: true }
+        ];
+
+        // --- FUNZIONE DI INIZIALIZZAZIONE (Generazione e Shuffle) ---
+        function initGrid() {
+            // Mescola il dataset in modo completamente casuale ad ogni run
+            itemsDataset.sort(() => Math.random() - 0.5);
+
+            // Genera fisicamente i bottoni nel DOM
+            itemsDataset.forEach(item => {
+                const button = document.createElement('button');
+                button.className = 'pill';
+                button.innerText = item.text;
+                
+                button.onclick = () => handlePillClick(button, item.isTrap);
+                container.appendChild(button);
+            });
+        }
+
+        // --- GESTIONE DEI CLICK SULLE PILLOLE ---
+        function handlePillClick(element, isTrap) {
+            // Se l'utente clicca su una mina, esplode la run istantaneamente
+            if (isTrap) {
+                triggerGameOver("Hai selezionato un'opzione di rifiuto! Profilazione interrotta.");
+                return;
+            }
+
+            // Altrimenti gestisce la selezione/deselezione dell'interesse corretto
+            if (element.classList.contains('selected')) {
+                element.classList.remove('selected');
+                selectedGoodCount--;
+            } else {
+                element.classList.add('selected');
+                selectedGoodCount++;
+            }
+
+            // Se ha scovato e cliccato tutti e 16 gli interessi validi, mostra il pulsante di sblocco
+            if (selectedGoodCount === totalGoodRequired) {
+                btnConferma.style.display = 'block';
+            } else {
+                btnConferma.style.display = 'none';
+            }
+        }
+
+        // --- VITTORIA E SCONFITTA ---
+        function triggerSuccess() {
+            levelContent.style.display = 'none';
+            resultContent.style.display = 'block';
+            modalBox.style.border = "2px solid #34A853";
+            resultTitle.style.color = "#34A853";
+            resultTitle.innerText = "✓ ACCETTATO";
+
+            setTimeout(() => {
+                window.parent.postMessage({ action: 'completeLevel' }, '*');
+            }, 1000);
+        }
+
+        function triggerGameOver(reason) {
+            window.parent.postMessage({ action: 'gameOver', reason: reason }, '*');
+        }
+
+        // Avvia il livello
+        initGrid();
+    </script>
+</body>
+</html>

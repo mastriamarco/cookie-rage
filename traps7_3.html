@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Rage - Livello 7_3</title>
+    <style>
+        /* =========================================
+           1. STILI DI BASE E SFONDO
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.5); 
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+            position: relative;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* =========================================
+           2. GRAFICA DELLA FINESTRA BANNER
+           ========================================= */
+        #cookie-modal {
+            background-color: #000000;
+            border: 1px solid #555555;
+            border-radius: 16px;
+            padding: 25px 20px;
+            width: 90%;
+            max-width: 360px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            text-align: center;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        h2 { color: #ffffff; margin: 0 0 10px 0; font-size: 18px; font-weight: 600; }
+        p.status-text { color: #4285F4; font-size: 13px; font-weight: bold; margin: 0 0 20px 0; min-height: 20px; }
+
+        /* =========================================
+           3. AREA DI GIOCO PERFETTAMENTE BILANCIATA
+           ========================================= */
+        .game-area {
+            position: relative;
+            width: 100%;
+            height: 120px; 
+            margin: 15px auto 5px auto;
+            box-sizing: border-box;
+        }
+
+        /* =========================================
+           4. LE CAMPANELLE (Contenitori Dinamici)
+           ========================================= */
+        .cup-container {
+            position: absolute;
+            bottom: 10px;
+            width: 70px;
+            height: 70px;
+            cursor: pointer;
+            z-index: 5;
+        }
+
+        .pos-0 { left: 0; }
+        .pos-1 { left: calc(50% - 35px); } 
+        .pos-2 { left: calc(100% - 70px); } 
+
+        /* --- CONTROLLO DINAMICO DELLA VELOCITÀ DELLE CAMPANE (CSS) --- */
+        
+        /* Default / Anteprima soluzione iniziale */
+        .cup-container {
+            transition: left 0.25s cubic-bezier(0.3, 0, 0.2, 1);
+        }
+
+        /* Velocità durante la FASE LENTA */
+        body.slow-phase .cup-container {
+            transition: left 0.55s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* Velocità durante la FASE VELOCE scatenata alla fine */
+        body.fast-phase .cup-container {
+            transition: left 0.3s cubic-bezier(0.3, 0, 0.2, 1);
+        }
+
+        /* --- LA SCOCCA COPRENTE --- */
+        .cup-shell {
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a1a;
+            border: 2px solid #444;
+            border-radius: 35px 35px 8px 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            box-shadow: inset 0 4px 8px rgba(255,255,255,0.05);
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 10; 
+            box-sizing: border-box;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s, background-color 0.2s;
+        }
+
+        .cup-container.lifted .cup-shell {
+            transform: translateY(-45px);
+            border-color: #34A853;
+            background-color: #111;
+        }
+
+        body.ready-to-pick .cup-container:hover .cup-shell {
+            border-color: #4285F4;
+            background-color: #222;
+        }
+
+        /* --- IL PREMIO NASCOSTO --- */
+        .prize-content {
+            width: 62px;
+            height: 28px;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 6px;
+            color: #ffffff;
+            z-index: 5; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+            box-sizing: border-box;
+        }
+        
+        .win-slot { background-color: #34A853; }
+        .lose-slot { background-color: #333333; color: #666; }
+
+        /* =========================================
+           5. SCHERMATA RISULTATO
+           ========================================= */
+        .result-screen { display: none; padding: 15px 0; }
+        .result-title { font-size: 24px; font-weight: bold; color: #34A853; }
+    </style>
+</head>
+<body id="game-body">
+
+    <div id="cookie-modal">
+        <div id="level-content">
+            <h2>Verifica Sincronizzazione</h2>
+            <p class="status-text" id="status-label">Memorizza il tasto CONSENTI al centro</p>
+            
+            <div class="game-area">
+                
+                <div class="cup-container pos-0 lifted" id="cup-A" onclick="selectCup('A')">
+                    <div class="cup-shell">🔔</div>
+                    <div class="prize-content lose-slot">BLOCCA</div>
+                </div>
+
+                <div class="cup-container pos-1 lifted" id="cup-B" onclick="selectCup('B')">
+                    <div class="cup-shell">🔔</div>
+                    <div class="prize-content win-slot">CONSENTI</div>
+                </div>
+
+                <div class="cup-container pos-2 lifted" id="cup-C" onclick="selectCup('C')">
+                    <div class="cup-shell">🔔</div>
+                    <div class="prize-content lose-slot">BLOCCA</div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="result-content" class="result-screen">
+            <div id="result-title" class="result-title">✓ CONFIGURATO</div>
+        </div>
+    </div>
+
+    <script>
+        const statusLabel = document.getElementById('status-label');
+        const levelContent = document.getElementById('level-content');
+        const resultContent = document.getElementById('result-content');
+        const modalBox = document.getElementById('cookie-modal');
+        const gameBody = document.getElementById('game-body');
+
+        const cups = {
+            A: { el: document.getElementById('cup-A'), pos: 0, isWinner: false },
+            B: { el: document.getElementById('cup-B'), pos: 1, isWinner: true },
+            C: { el: document.getElementById('cup-C'), pos: 2, isWinner: false }
+        };
+
+        const positionClasses = ['pos-0', 'pos-1', 'pos-2'];
+        
+        let gameState = "preview"; 
+        let shuffleCount = 0;
+
+        // --- CONFIGURAZIONE DEI MOVIMENTI ---
+        const totalSlowShuffles = 4; // Quanti scambi lenti fare all'inizio (3 o 4)
+        const totalFastShuffles = 3; // Quanti scambi fulminei fare alla fine (un paio)
+        const totalShuffles = totalSlowShuffles + totalFastShuffles;
+
+        function initGame() {
+            setTimeout(() => {
+                // Chiude i gusci nascondendo i pulsanti
+                Object.keys(cups).forEach(key => cups[key].el.classList.remove('lifted'));
+                
+                // Pausa ad effetto e poi inizio mescolamento asincrono
+                setTimeout(startShuffle, 500);
+            }, 1500);
+        }
+
+        function startShuffle() {
+            gameState = "shuffling";
+            statusLabel.innerText = "Mescolamento... SEGUI LA CAMPANA CENTRALE!";
+            statusLabel.style.color = "#EA4335"; 
+
+            // Fa partire il motore ricorsivo dello shuffle
+            runShuffleStep();
+        }
+
+        // --- MOTORE DI SCHEDULAZIONE DINAMICO DELLA VELOCITÀ (JS) ---
+        function runShuffleStep() {
+            // Se abbiamo completato tutti i passaggi, fermiamo il ciclo e abilitiamo la scelta
+            if (shuffleCount >= totalShuffles) {
+                setTimeout(() => {
+                    gameState = "ready";
+                    gameBody.classList.remove('slow-phase', 'fast-phase');
+                    gameBody.classList.add('ready-to-pick'); 
+                    statusLabel.innerText = "Clicca la campanella corretta!";
+                    statusLabel.style.color = "#34A853"; 
+                }, 300); // Margine di sicurezza per completare l'ultima transizione grafica
+                return;
+            }
+
+            let currentDelay = 200; // Valore di fallback
+
+            // Controllo del ritmo in base al conteggio degli scambi effettuati
+            if (shuffleCount < totalSlowShuffles) {
+                // FASE LENTA
+                gameBody.classList.add('slow-phase');
+                gameBody.classList.remove('fast-phase');
+                currentDelay = 650; // Passano 650 millisecondi tra uno scambio e l'altro
+            } else {
+                // FASE VELOCE SCATENATA ALL'IMPROVVISO
+                gameBody.classList.add('fast-phase');
+                gameBody.classList.remove('slow-phase');
+                currentDelay = 350; // Ritmo frenetico a 180 millisecondi!
+            }
+
+            // Esegue fisicamente l'inversione di due elementi
+            executeRandomSwap();
+            shuffleCount++;
+
+            // Richiama se stessa impostando il timer calcolato per il ciclo successivo
+            setTimeout(runShuffleStep, currentDelay);
+        }
+
+        function executeRandomSwap() {
+            const keys = Object.keys(cups);
+            const i = Math.floor(Math.random() * keys.length);
+            let j = Math.floor(Math.random() * keys.length);
+            while (i === j) { j = Math.floor(Math.random() * keys.length); }
+
+            const cup1 = cups[keys[i]];
+            const cup2 = cups[keys[j]];
+
+            const tempPos = cup1.pos;
+            cup1.pos = cup2.pos;
+            cup2.pos = tempPos;
+
+            updateDomPositions();
+        }
+
+        function updateDomPositions() {
+            Object.keys(cups).forEach(key => {
+                const cup = cups[key];
+                cup.el.classList.remove('pos-0', 'pos-1', 'pos-2');
+                cup.el.classList.add(positionClasses[cup.pos]);
+            });
+        }
+
+        function selectCup(id) {
+            if (gameState !== "ready") return; 
+            gameState = "ended";
+            gameBody.classList.remove('ready-to-pick');
+
+            const chosenCup = cups[id];
+            chosenCup.el.classList.add('lifted'); 
+
+            if (chosenCup.isWinner) {
+                triggerSuccess();
+            } else {
+                setTimeout(() => {
+                    Object.keys(cups).forEach(key => cups[key].el.classList.add('lifted'));
+                }, 250);
+                triggerGameOver("Hai perso d'occhio il bersaglio! Quella era una trappola.");
+            }
+        }
+
+        function triggerSuccess() {
+            setTimeout(() => {
+                levelContent.style.display = 'none';
+                resultContent.style.display = 'block';
+                modalBox.style.border = "2px solid #34A853";
+                setTimeout(() => { window.parent.postMessage({ action: 'completeLevel' }, '*'); }, 1000);
+            }, 600);
+        }
+
+        function triggerGameOver(reason) {
+            setTimeout(() => { window.parent.postMessage({ action: 'gameOver', reason: reason }, '*'); }, 1000);
+        }
+
+        window.onload = () => {
+            initGame();
+        };
+    </script>
+</body>
+</html>
