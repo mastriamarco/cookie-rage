@@ -114,11 +114,11 @@
         <div class="search-result" onclick="showLeaderboard()">
             <span class="title">Classifica Globale - I record mondiali di Cookie Rage</span>
             <div class="url">https://www.cookierage.it > record > leaderboards</div>
-            <p class="desc">Guarda i tempi dei migliori speedrunner globali. Scopri chi è riuscito a completare la cessione dell'anima senza mai farsi distruggere dai firewall.</p>
+            <p class="desc" id="leaderboard-desc">Caricamento record in corso...</p>
         </div>
 
         <div class="search-result" onclick="showCredits()">
-            <span class="title">Crediti e Sviluppo - Note di rilascio del simulatore</span>
+            <span class="title">Crediti e Svililletta - Note di rilascio del simulatore</span>
             <div class="url">https://www.cookierage.it > informazioni > crediti</div>
             <p class="desc">Scopri i creatori dietro a questo incubo informatico, i ringraziamenti speciali e le tecnologie utilizzate per ottimizzare i dark patterns.</p>
         </div>
@@ -168,7 +168,6 @@
             }
         }
 
-        // ELIMINATO LIVELLO 10: Si ferma ufficialmente alla vendita dell'anima
         const levelNames = [
             "1. Accetta cookie base", "2. Finalità marketing", "3. Condivisione dati",
             "4. Geolocalizzazione", "5. Tracciamento", "6. Profilazione",
@@ -233,7 +232,6 @@
         }
 
         // --- SISTEMA DISTRIBUZIONE TRAFFICO VARIANTI ---
-        // Rimosso il riferimento al livello 10. Livello 9 ora ha 2 varianti.
         const variantsPerLevel = {
             1: 1, 
             2: 2, 
@@ -241,7 +239,7 @@
             4: 4,
             5: 3,
             6: 4,
-            7: 3,
+            7: 4,
             8: 4,
             9: 2  
         };
@@ -257,7 +255,13 @@
             frame.style.display = 'block';
         }
 
-        // --- GESTIONE CONCLUSIONE LIVELLI ---
+        // =========================================================
+        // CONFIGURAZIONE CLASSIFICA GLOBALE (JSONBIN.IO MIGRATION)
+        // =========================================================
+        const JSONBIN_API_KEY = "$2a$10$Vh8aVf3Eq8a7Y09P3hv/PeH213zKuf6l.jKVpAu.EYTLwpNhNTeme";
+        const JSONBIN_BIN_ID  = "6a2fd7e4f5f4af5e29f47e07";
+        // =========================================================
+
         function completeLevel() {
             const frame = document.getElementById('trap-frame');
             frame.style.display = 'none';
@@ -265,23 +269,121 @@
             
             currentLevel++;
             
-            // CONDIZIONE RICALIBRATA: Si vince quando superi il livello 9 (currentLevel diventa 10)
             if(currentLevel > 9) {
                 clearInterval(timerInterval); 
                 let finalTime = document.getElementById('timer-display').innerText;
-                alert("🏆 VITTORIA FINALISSIMA! 🏆\n\nHai completato la Speedrun dei Cookie!\nTempo Finale: " + finalTime + "\n\nLa tua anima appartiene ufficialmente al sistema.");
-                location.reload();
+                
+                // Richiesta nome estesa a 10 caratteri invece di 3 lettere
+                let playerName = prompt(`🏆 VITTORIA FINALISSIMA! 🏆\n\nHai completato la Speedrun dei Cookie!\nTempo Finale: ${finalTime}\n\nInserisci il tuo nome (max 10 caratteri) per la classifica globale:`);
+                
+                if (playerName) {
+                    playerName = playerName.substring(0, 10).toUpperCase().replace(/[^A-Z0-9]/g, "");
+                    if(!playerName) playerName = "GUEST";
+                    saveTimeToLeaderboard(playerName, timeElapsed);
+                } else {
+                    location.reload();
+                }
             } else {
                 renderChecklist();
             }
         }
 
-        // --- SISTEMA GAME OVER ---
+        function saveTimeToLeaderboard(name, score) {
+            console.log("Salvataggio record in corso...");
+            
+            fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                headers: { "X-Master-Key": JSONBIN_API_KEY }
+            })
+            .then(res => res.json())
+            .then(resData => {
+                let leaderboard = resData.record || [];
+                leaderboard.push({ name: name, score: score });
+                
+                // Ordinamento crescente (il più veloce in cima) e teniamo i migliori 10
+                leaderboard.sort((a, b) => a.score - b.score);
+                leaderboard = leaderboard.slice(0, 10);
+                
+                return fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-Master-Key": JSONBIN_API_KEY
+                    },
+                    body: JSON.stringify(leaderboard)
+                });
+            })
+            .then(() => {
+                alert("🏆 RECORD REGISTRATO! \nLa tua anima e il tuo tempo sono stati salvati nel cloud.");
+                location.reload();
+            })
+            .catch(() => {
+                alert("Errore di rete durante il salvataggio.");
+                location.reload();
+            });
+        }
+
+        // POP-UP COMPLETO (Mostra i record estratti dal payload .record)
+        function showLeaderboard() {
+            fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                headers: { "X-Master-Key": JSONBIN_API_KEY }
+            })
+            .then(res => res.json())
+            .then(resData => {
+                let leaderboard = resData.record || [];
+                if(leaderboard.length === 0) {
+                    alert("📊 CLASSIFICA MONDIALE DEI COOKIE 📊\n\nNessun record registrato. Sii il primo a cedere l'anima!");
+                    return;
+                }
+                
+                let text = "📊 CLASSIFICA MONDIALE DEI COOKIE (TOP 10) 📊\n\n";
+                leaderboard.forEach((player, index) => {
+                    let minutes = Math.floor(player.score / 6000).toString().padStart(2, '0');
+                    let seconds = Math.floor((player.score % 6000) / 100).toString().padStart(2, '0');
+                    let centiseconds = (player.score % 100).toString().padStart(2, '0');
+                    
+                    text += `${index + 1}. [ ${player.name} ] — ${minutes}:${seconds}:${centiseconds}\n`;
+                });
+                
+                alert(text);
+            })
+            .catch(() => alert("Impossibile caricare la classifica. Il database sicuro rifiuta la chiamata."));
+        }
+
+        // AGGIORNA LO SNIPPET GOOGLE IN HOME FACENDO IL PARSING DI JSONBIN
+        function updateBestTimeSnippet() {
+            fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                headers: { "X-Master-Key": JSONBIN_API_KEY }
+            })
+            .then(res => res.json())
+            .then(resData => {
+                const descEl = document.getElementById('leaderboard-desc');
+                let leaderboard = resData.record || [];
+                
+                if(leaderboard.length === 0) {
+                    descEl.innerText = "In questa pagina troverai tutti i tempi registrati. Nessun record presente al momento.";
+                    return;
+                }
+                
+                let best = leaderboard[0];
+                let mm = Math.floor(best.score / 6000).toString().padStart(2, '0');
+                let ss = Math.floor((best.score % 6000) / 100).toString().padStart(2, '0');
+                let xx = (best.score % 100).toString().padStart(2, '0');
+
+                descEl.innerHTML = `Il più veloce è stato <b>${best.name}</b> con <b>${mm}:${ss}:${xx}</b>, in questa pagina troverai tutti i tempi registrati.`;
+            })
+            .catch(() => {
+                document.getElementById('leaderboard-desc').innerText = "In questa pagina troverai tutti i tempi registrati.";
+            });
+        }
+
+        function showCredits() {
+            alert("🎬 CREDITI DEL GIOCO 🎬\n\nGame Design & Sadismo: Tu & Gemini\nConcept: L'inferno quotidiano dei Dark Patterns\nDatabase Classifica: JSONBin.io Secure API\n\nGrazie per aver testato la tua sanità mentale con Cookie Rage!");
+        }
+
         function gameOver(reason) {
             const frame = document.getElementById('trap-frame');
             frame.style.display = 'none';
             frame.src = '';
-            
             clearInterval(timerInterval); 
             isTimerRunning = false;
             
@@ -292,18 +394,9 @@
             currentLevel = 1;
             document.getElementById('screen-game').style.display = 'none';
             document.getElementById('screen-home').style.display = 'block';
+            updateBestTimeSnippet(); 
         }
 
-        // --- FUNZIONI APERTE DALLE NUOVE VOCI DEL MENU ---
-        function showLeaderboard() {
-            alert("📊 CLASSIFICA MONDIALE DEI COOKIE 📊\n\n1. SpeedRunner99 — 01:14:22\n2. DarkPatternHunter — 01:32:05\n3. NoMorePopups — 01:55:40\n4. Tu — --:--:--\n\nCompleta il gioco senza morire per registrare il tuo record!");
-        }
-
-        function showCredits() {
-            alert("🎬 CREDITI DEL GIOCO 🎬\n\nGame Design & Sadismo: mm_devlab\nConcept: L'inferno quotidiano dei Dark Patterns\nSviluppo: HTML5 / JavaScript Puro\n\nGrazie per aver testato la tua sanità mentale con Cookie Rage!");
-        }
-
-        // --- LISTENER PER I MESSAGGI GENERATI DALL'IFRAME ---
         window.addEventListener('message', function(event) {
             if (event.data) {
                 if (event.data.action === 'completeLevel') {
@@ -313,6 +406,8 @@
                 }
             }
         });
+
+        updateBestTimeSnippet();
     </script>
 </body>
 </html>
